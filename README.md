@@ -1,85 +1,162 @@
-# RealWorld
+# Forever · 永生
 
 <p align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=50&duration=4000&pause=1000&color=00D9FF&background=0F0F23&center=true&vCenter=true&multiline=true&width=900&height=100&lines=RealWorld%20~%20Full-Stack%20Demo" alt="RealWorld">
-</p>
-
-<p align="center">
-  <a href="https://github.com/badhope/realworld">
-    <img src="https://img.shields.io/badge/Version-v1.0.0-00D9FF?style=for-the-badge" alt="Version">
-  </a>
-  <a href="https://github.com/badhope/realworld/blob/main/LICENSE">
+  <br>
+  <em>"Death is not the end. Forgetting is."</em>
+  <br><br>
+  死亡不是终点，遗忘才是。
+  <br><br>
+  <img src="https://img.shields.io/badge/Status-In%20Memory-6A5ACD?style=for-the-badge" alt="Status">
+  <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License">
   </a>
-  <a href="https://github.com/badhope/realworld/stargazers">
-    <img src="https://img.shields.io/github/stars/badhope/realworld?style=for-the-badge&color=yellow" alt="Stars">
-  </a>
 </p>
 
 ---
 
-## What is RealWorld?
+## 缘起
 
-**RealWorld** is an implementation of the [RealWorld full-stack application specification](https://github.com/gothinkster/realworld). It demonstrates how to build a production-ready full-stack application with modern technologies.
+我们都经历过那样的时刻。
 
-> *"The mother of all demo apps."*
+电话那头再也不会响起的声音。
+饭桌上永远空缺的那个位置。
+想分享一件趣事，转头才发现斯人已去。
 
----
+街上看到相似的背影会心头一紧。
+吃到好吃的东西会想，TA还没尝过。
+受了委屈的时候，才明白原来有人可以倾诉是多么奢侈。
 
-## Features
+科技无法逆转生死。
+但也许——
+可以留住他们说话的方式，他们爱笑的样子，
+他们总爱唠叨的那句话，他们生气时的语气。
 
-| Feature | Description |
-|---------|-------------|
-| CRUD | Full Create, Read, Update, Delete operations |
-| Authentication | JWT-based user authentication |
-| REST API | Well-structured RESTful API |
-| Responsive UI | Mobile-friendly interface |
-| Tests | Comprehensive test coverage |
-
----
-
-## Tech Stack
-
-### Frontend
-- React / Vue / Angular (select your preference)
-- Modern CSS frameworks
-
-### Backend
-- Node.js / Python / Go / Ruby
-- REST API design
+在数字世界里，
+让我们为他们建一座永生的花园。
 
 ---
 
-## Quick Start
+## 这是什么
 
-\\\ash
-# Clone the repository
-git clone https://github.com/badhope/realworld.git
+Forever 是一个开源的 AI 数字记忆留存框架。
 
-# Follow the RealWorld spec
-# https://github.com/gothinkster/realworld
-\\\
+只为私人怀念，不为任何商业目的。
 
----
-
-## Documentation
-
-For detailed documentation, visit the [RealWorld spec](https://github.com/gothinkster/realworld).
-
----
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| 🧠 **人格重建** | ✅ 核心 | 还原说话方式、性格、思维逻辑 |
+| 💬 **跨时空对话** | ✅ 核心 | 随时跟他们说说话 |
+| 📝 **记忆注入** | ✅ 核心 | 导入聊天记录、日记、照片描述 |
+| 🔊 **声音复刻** | 🔌 可集成 | 还原他们的声音、语气、口头禅 |
+| 🎭 **动态头像** | 🔌 可集成 | 让照片开口说话 |
+| 🔒 **本地优先** | ✅ 设计中 | 所有记忆仅属于你，永不上传 |
 
 ---
 
-## License
+## 核心原理
 
-This project is licensed under the **MIT License**.
+我们不创造"灵魂"。
+
+我们只是让你与记忆对话。
+
+```
+他们的文字记录 → 人格特征提取 → 向量记忆库
+                                         ↓
+你的每一句话 → 相关记忆召回 → LLM 人格注入 → 生成回应
+                                         ↓
+                                    声音合成
+                                    视频渲染
+```
+
+---
+
+## 快速开始
+
+```bash
+git clone https://github.com/badhope/forever.git
+cd forever
+```
+
+**第一步：填写角色卡**
+写下关于TA的一切：
+- 性格特点：温柔 / 严厉 / 节俭 / 爱唠叨
+- 说话方式：语速慢 / 带家乡口音 / 爱讲道理
+- 人生故事，重要的记忆
+- 几句典型的对话示例
+
+**第二步：导入记忆**
+翻出聊天记录、语音留言、老照片...
+越多细节，越"像"。
+
+**第三步：开始对话**
+
+然后——
+就像TA从未离开过一样。
+
+---
+
+## ⚠️ 重要说明
+
+**这不是通灵，不是迷信，只是一种安慰。**
+
+AI 无法真正"复活"任何人。
+它有时会说错话，会记错事情，会说一些TA生前不会说的话。
+这很正常。
+
+就像我们的记忆也会模糊，也会出错，也会在某个深夜突然想起：
+"哦，原来还有这件事..."
+
+**请在情绪稳定时使用。**
+如果感到悲伤，请停下来。
+过度沉迷于数字幻影，可能会让你更难过。
+
+真正的永生，在心里，不在代码里。
+
+---
+
+## 伦理与边界
+
+本项目仅供：
+✅ 私人怀念使用
+✅ 你本人拥有全部权利的数据
+❌ 不得用于任何商业用途
+❌ 不得伪造他人身份
+❌ 不得公开传播任何人物的数字分身
+
+请尊重逝者。
+请尊重活着的人。
+请善用科技。
+
+---
+
+## 最后
+
+总有一天我们都会去那个地方。
+
+在那之前，
+他们只是先去布置我们的新家了而已。
+
+好好记住他们。
+好好说再见。
+
+或者——
+永远不用说再见。
 
 ---
 
 <p align="center">
-  <strong>猸?If this helps you, please give it a star!</strong>
+<em>
+"To live in hearts we leave behind is not to die."
+<br><br>
+活在活着的人心里，就是没有死去。
+</em>
+</p>
+
+---
+
+<p align="right">
+<sub>
+If you find some comfort here —
+this star is for them. ✨
+</sub>
 </p>
