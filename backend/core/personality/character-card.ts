@@ -1,3 +1,5 @@
+import { OceanPersonality, PAD, Habit, SpeechPattern, ReactionTemplate } from './personality-types';
+
 export interface CharacterCard {
   id: string;
   name: string;
@@ -11,6 +13,13 @@ export interface CharacterCard {
   speechStyle: string;
   catchphrases: string[];
   topics: string[];
+  
+  oceanPersonality: OceanPersonality;
+  baselineMood: PAD;
+  
+  habits: Habit[];
+  speechPattern: SpeechPattern;
+  reactionTemplates: ReactionTemplate[];
   
   lifeStory: string;
   importantMemories: string[];

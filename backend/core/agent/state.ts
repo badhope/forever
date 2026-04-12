@@ -1,5 +1,6 @@
 import { CharacterCard } from '../personality/character-card';
 import { ChatMessage, MemoryUnit } from '../../memory/memory-types';
+import { PAD } from '../personality/personality-types';
 
 export interface AgentState {
   characterId: string;
@@ -12,7 +13,10 @@ export interface AgentState {
   retrievedMemories: MemoryUnit[];
   systemPrompt: string;
   
-  currentMood: string;
+  currentPAD: PAD;
+  currentMoodLabel: string;
+  stimulusPAD: PAD;
+  
   response: string;
   audioUrl?: string;
   
