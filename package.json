@@ -1,21 +1,44 @@
 {
-  "name": "forever",
-  "version": "0.1.0",
-  "description": "AI 数字记忆留存框架 - 让我们爱的人永远活着",
-  "main": "index.js",
+  "name": "forever-ai",
+  "version": "1.0.0",
+  "description": "7-layer personality simulation pyramid for digital immortality. Based on Stanford Generative Agents + Sentipolis.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "files": [
+    "dist",
+    "backend/core",
+    "examples"
+  ],
+  "bin": {
+    "forever": "./examples/chat-ultimate.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/badhope/forever.git"
+  },
+  "homepage": "https://badhope.github.io/forever/publish.html",
   "scripts": {
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
-    "build": "npm run build:backend && npm run build:frontend"
+    "build": "npm run build:backend && npm run build:frontend",
+    "chat": "tsx examples/chat-ultimate.ts",
+    "publish:pages": "gh-pages -d . --src publish.html",
+    "publish:npm": "npm publish --access public"
   },
   "keywords": [
     "ai",
     "agent",
-    "memory",
+    "personality",
+    "generative-agents",
     "character-ai",
-    "digital-legacy"
+    "digital-immortality",
+    "grief-therapy",
+    "digital-legacy",
+    "pad-emotion-model",
+    "ocean-personality"
   ],
-  "author": "",
+  "author": "badhope",
   "license": "MIT",
   "dependencies": {
     "@langchain/core": "^0.1.0",
