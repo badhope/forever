@@ -12,7 +12,7 @@
  * - 记忆来源标记（chat/reflection）
  */
 
-import { chat, type ChatMessage, type LLMConfig } from '../backend/core/llm/index';
+import { chat, chatStream, type ChatMessage, type LLMConfig } from '../backend/core/llm/index';
 import {
   retrieveLocalMemories, storeLocalMemory, getMemoryCount,
   batchStoreMemories, decayMemories, deduplicateMemories,
@@ -34,7 +34,7 @@ export class ForeverConversation {
   private characterId: string;
   private memoryEnabled: boolean;
   private conversationCount = 0;
-  private ethicsSystem: import('../backend/core/ethics/guardian').GuardianEthicsSystem;
+  private ethicsSystem: any = null;
 
   /** 反思触发间隔（每N轮对话做一次记忆反思） */
   private readonly reflectionInterval = 10;
@@ -46,9 +46,6 @@ export class ForeverConversation {
     this.llmConfig = llmConfig;
     this.characterId = characterId;
     this.memoryEnabled = false;
-    // 延迟导入避免循环依赖
-    const { GuardianEthicsSystem } = require('../backend/core/ethics/guardian');
-    this.ethicsSystem = new GuardianEthicsSystem();
   }
 
   /** 初始化对话系统，检测记忆系统可用性 */
@@ -79,6 +76,10 @@ export class ForeverConversation {
     const activeLayers: string[] = [];
 
     // Layer 0: 伦理守护（优先级最高）
+    if (!this.ethicsSystem) {
+      const { GuardianEthicsSystem } = await import('../backend/core/ethics/guardian');
+      this.ethicsSystem = new GuardianEthicsSystem();
+    }
     const assessment = this.ethicsSystem.assessMessage(userMessage);
     if (assessment.riskLevel === 'critical') {
       return {
@@ -193,6 +194,132 @@ export class ForeverConversation {
       memoriesUsed: memories.length,
       memoriesExtracted,
       ethicsWarning: assessment.riskLevel === 'warning' ? '注意使用频率' : undefined,
+      layers: activeLayers,
+      reflectionSummary,
+    };
+  }
+
+  /** 流式对话，逐步返回文本块 */
+  async *chatStream(userMessage: string): AsyncGenerator<{
+    type: 'token' | 'metadata';
+    text?: string;
+    emotionLabel?: string;
+    consistencyScore?: number;
+    memoriesUsed?: number;
+    memoriesExtracted?: number;
+    layers?: string[];
+    reflectionSummary?: string;
+  }> {
+    this.conversationCount++;
+    const activeLayers: string[] = [];
+
+    // Ethics check
+    if (!this.ethicsSystem) {
+      const { GuardianEthicsSystem } = await import('../backend/core/ethics/guardian');
+      this.ethicsSystem = new GuardianEthicsSystem();
+    }
+    const assessment = this.ethicsSystem.assessMessage(userMessage);
+    if (assessment.riskLevel === 'critical') {
+      yield { type: 'metadata', text: assessment.intervention! };
+      return;
+    }
+
+    // Emotion analysis
+    const { emotion, label } = inferEmotionFromText(userMessage);
+    activeLayers.push('PAD情绪分析');
+
+    // Memory retrieval
+    let memories: string[] = [];
+    if (this.memoryEnabled) {
+      try {
+        const results = await retrieveLocalMemories({
+          query: userMessage,
+          characterId: this.characterId,
+          limit: 5,
+          minImportance: 0.3,
+        });
+        memories = results.map(r => r.content);
+        if (memories.length > 0) activeLayers.push('关联记忆检索');
+      } catch { /* skip */ }
+    }
+
+    // Build prompt
+    const systemPrompt = buildFullSystemPrompt(
+      this.character, emotion, label, memories, userMessage
+    );
+    activeLayers.push('核心身份+OCEAN人格+习惯动作');
+
+    const chatMessages: ChatMessage[] = [
+      { role: 'system', content: systemPrompt },
+      ...this.messages.slice(-10).map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      })),
+      { role: 'user', content: userMessage },
+    ];
+    activeLayers.push('工作记忆');
+
+    // Stream response
+    let fullResponse = '';
+    try {
+      const chunks: string[] = [];
+      await chatStream(chatMessages, this.llmConfig, (chunk: string) => {
+        chunks.push(chunk);
+      });
+      for (const chunk of chunks) {
+        fullResponse += chunk;
+        yield { type: 'token', text: chunk };
+      }
+    } catch {
+      yield { type: 'token', text: '...（沉默了一会儿）' };
+      return;
+    }
+
+    // Apply imperfection
+    fullResponse = applyHumanImperfection(fullResponse);
+
+    // Consistency check (every 3 turns)
+    let consistencyScore = 7;
+    if (this.conversationCount % 3 === 0) {
+      consistencyScore = await this.scoreConsistency(userMessage, fullResponse);
+      activeLayers.push('一致性反思');
+    }
+
+    // Memory extraction
+    let memoriesExtracted = 0;
+    if (this.memoryEnabled) {
+      memoriesExtracted = await this.extractAndStoreMemories(userMessage, fullResponse);
+      if (memoriesExtracted > 0) activeLayers.push(`LLM记忆提取(${memoriesExtracted}条)`);
+    }
+
+    // Periodic reflection
+    let reflectionSummary: string | undefined;
+    if (this.memoryEnabled && this.conversationCount % this.reflectionInterval === 0) {
+      reflectionSummary = await this.performReflection();
+      if (reflectionSummary) activeLayers.push('记忆反思');
+    }
+
+    // Periodic maintenance
+    if (this.memoryEnabled && this.conversationCount % this.decayInterval === 0) {
+      await this.maintenance();
+    }
+
+    // Update working memory
+    this.messages.push(
+      { role: 'user', content: userMessage, timestamp: new Date() },
+      { role: 'assistant', content: fullResponse, timestamp: new Date(), emotion: label, consistencyScore }
+    );
+    if (this.messages.length > 30) {
+      this.messages = this.messages.slice(-30);
+    }
+
+    // Yield metadata
+    yield {
+      type: 'metadata',
+      emotionLabel: label,
+      consistencyScore,
+      memoriesUsed: memories.length,
+      memoriesExtracted,
       layers: activeLayers,
       reflectionSummary,
     };
