@@ -1,3 +1,18 @@
+/**
+ * Forever · 永生 - 完整版对话模式
+ *
+ * 包含全部7层人格模拟：
+ * - L1 核心身份锚定
+ * - L2 工作记忆（上下文窗口）
+ * - L3 关联记忆（时间感知）
+ * - L4 OCEAN五大人格行为注入
+ * - L5 PAD情绪动力学 + 协方差矩阵
+ * - L6 习惯引擎
+ * - L7 元认知反思（双Agent一致性自检）
+ *
+ * 使用统一LLM适配器，支持所有平台
+ */
+
 import { buildSystemPrompt } from '../backend/core/personality/prompt-template';
 import { buildPersonalityInjectionPrompt } from '../backend/core/personality/personality-filter';
 import { EmotionDynamicsEngine } from '../backend/core/personality/emotion-engine';
@@ -5,30 +20,38 @@ import { ConsistencyScorer } from '../backend/core/personality/consistency-score
 import { HumanImperfectionLayer } from '../backend/core/personality/human-imperfection';
 import { TimeAwareMemorySystem } from '../backend/memory/time-aware-memory';
 import { GuardianEthicsSystem } from '../backend/core/ethics/guardian';
+import { chat, detectLLMConfig } from '../backend/core/llm/index';
+import type { ChatMessage } from '../backend/core/llm/index';
 import motherCard from './mother-demo.json' assert { type: 'json' };
 import * as readline from 'readline';
-import OpenAI from 'openai';
 
-const apiKey = process.env.OPENAI_API_KEY || '';
-if (!apiKey) {
-  console.log('请设置 OPENAI_API_KEY 环境变量');
+// 自动检测LLM配置
+const llmConfig = detectLLMConfig();
+
+if (!llmConfig) {
+  console.log('\n  ❌ 未检测到LLM API Key');
+  console.log('\n  请设置以下任一环境变量：');
+  console.log('    FOREVER_LLM_PROVIDER + FOREVER_LLM_API_KEY  (通用)');
+  console.log('    DEEPSEEK_API_KEY / DASHSCOPE_API_KEY / ZHIPU_API_KEY');
+  console.log('    MOONSHOT_API_KEY / SILICONFLOW_API_KEY / OPENAI_API_KEY');
+  console.log('    等更多平台...\n');
   process.exit(1);
 }
-
-const openai = new OpenAI({
-  apiKey,
-  baseURL: 'https://api.deepseek.com/v1',
-});
 
 const character = motherCard as any;
 
 const emotionEngine = new EmotionDynamicsEngine(character.baselineMood);
-const consistencyScorer = new ConsistencyScorer(apiKey);
+const consistencyScorer = new ConsistencyScorer(
+  llmConfig.apiKey,
+  llmConfig.provider,
+  llmConfig.model,
+  llmConfig.baseUrl
+);
 const imperfectionLayer = new HumanImperfectionLayer();
 const memorySystem = new TimeAwareMemorySystem();
 const ethicsSystem = new GuardianEthicsSystem();
 
-const messages: any[] = [];
+const messages: ChatMessage[] = [];
 
 console.log('\n');
 console.log('╔═══════════════════════════════════════════════╗');
@@ -44,11 +67,12 @@ console.log('  ✓ 双Agent人格一致性自检闭环');
 console.log('  ✓ 可量化人性缺陷噪声层');
 console.log('  ✓ 时间感知记忆 + 昼夜节律');
 console.log('  ✓ 守护者伦理熔断机制');
+console.log(`\n  LLM平台: ${llmConfig.provider} (${llmConfig.model || '默认模型'})`);
 console.log('\n  正在与 %s 对话中...', character.name);
 console.log('\n  输入 .exit 退出');
 console.log('\n─────────────────────────────────────────────────\n');
 
-async function chat(userMessage: string): Promise<{
+async function chatWithCharacter(userMessage: string): Promise<{
   reply: string;
   moodLabel: string;
   consistency: number;
@@ -60,7 +84,7 @@ async function chat(userMessage: string): Promise<{
 
   const stimulus = EmotionDynamicsEngine.inferStimulusSemantic(userMessage);
   emotionEngine.update(stimulus);
-  
+
   const currentMood = emotionEngine.getCurrentEmotion();
   const moodLabel = emotionEngine.getEmotionLabelChinese();
 
@@ -78,20 +102,22 @@ async function chat(userMessage: string): Promise<{
     moodLabel
   ) + personalityInjection + timeContext;
 
-  const allMessages = [
+  const allMessages: ChatMessage[] = [
     { role: 'system', content: systemPrompt },
     ...messages.slice(-8),
     { role: 'user', content: userMessage }
   ];
 
-  const response = await openai.chat.completions.create({
-    model: 'deepseek-chat',
-    messages: allMessages as any,
+  const response = await chat(allMessages, {
+    provider: llmConfig.provider,
+    apiKey: llmConfig.apiKey,
+    model: llmConfig.model,
+    baseUrl: llmConfig.baseUrl,
     temperature: 0.75,
-    max_tokens: 250,
+    maxTokens: 250,
   });
-  
-  let rawReply = response.choices[0].message.content || '';
+
+  let rawReply = response.content;
 
   const { finalResponse, score, retries } = await consistencyScorer.verifyAndCorrect(
     character.name,
@@ -133,13 +159,13 @@ function promptUser() {
       rl.close();
       return;
     }
-    
+
     process.stdout.write(`\n${character.name}: `);
-    
+
     try {
-      const result = await chat(input);
+      const result = await chatWithCharacter(input);
       console.log(result.reply);
-      
+
       const metrics = [];
       metrics.push(`心情: ${result.moodLabel}`);
       metrics.push(`一致性: ${result.consistency.toFixed(1)}/10`);
@@ -153,7 +179,7 @@ function promptUser() {
       console.log('... (沉默了一会儿)');
       console.log('  ', e.message?.slice(0, 50));
     }
-    
+
     console.log('');
     promptUser();
   });

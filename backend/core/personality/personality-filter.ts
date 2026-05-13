@@ -1,43 +1,5 @@
 import { OceanPersonality } from './personality-types';
 
-interface BehavioralConstraint {
-  responseModifier: number;
-  topicPreferences: Record<string, number>;
-  speechPatterns: {
-    sentenceLength: number;
-    questionRate: number;
-    repetitionRate: number;
-  };
-}
-
-const OCEAN_BEHAVIOR_MAP: Record<keyof OceanPersonality, BehavioralConstraint> = {
-  openness: {
-    responseModifier: 0,
-    topicPreferences: {},
-    speechPatterns: { sentenceLength: 0, questionRate: 0, repetitionRate: 0 }
-  },
-  conscientiousness: {
-    responseModifier: 0,
-    topicPreferences: {},
-    speechPatterns: { sentenceLength: 0, questionRate: 0, repetitionRate: 0 }
-  },
-  extraversion: {
-    responseModifier: 0,
-    topicPreferences: {},
-    speechPatterns: { sentenceLength: 0, questionRate: 0, repetitionRate: 0 }
-  },
-  agreeableness: {
-    responseModifier: 0,
-    topicPreferences: {},
-    speechPatterns: { sentenceLength: 0, questionRate: 0, repetitionRate: 0 }
-  },
-  neuroticism: {
-    responseModifier: 0,
-    topicPreferences: {},
-    speechPatterns: { sentenceLength: 0, questionRate: 0, repetitionRate: 0 }
-  },
-};
-
 function oceanToBehavioralConstraints(ocean: OceanPersonality): string[] {
   const constraints: string[] = [];
 

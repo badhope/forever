@@ -1,17 +1,50 @@
+/**
+ * Forever - 人格系统类型定义
+ */
+
+/**
+ * Big Five OCEAN人格模型
+ */
 export interface OceanPersonality {
+  /** 开放性 1-10 */
   openness: number;
+  /** 尽责性 1-10 */
   conscientiousness: number;
+  /** 外向性 1-10 */
   extraversion: number;
+  /** 宜人性 1-10 */
   agreeableness: number;
+  /** 神经质 1-10 */
   neuroticism: number;
 }
 
+/**
+ * PAD情绪模型
+ */
 export interface PAD {
+  /** 愉悦度 -1 ~ 1 */
   pleasure: number;
+  /** 唤醒度 -1 ~ 1 */
   arousal: number;
+  /** 支配度 -1 ~ 1 */
   dominance: number;
 }
 
+/**
+ * 情绪标签
+ */
+export type EmotionLabel =
+  | 'peaceful'
+  | 'worried'
+  | 'nostalgic'
+  | 'caring'
+  | 'chiding'
+  | 'sad'
+  | 'joyful';
+
+/**
+ * 习惯动作
+ */
 export interface Habit {
   id: string;
   type: 'catchphrase' | 'filler' | 'reaction' | 'topic_preference';
@@ -22,6 +55,9 @@ export interface Habit {
   lastTriggeredAt?: Date;
 }
 
+/**
+ * 语言模式
+ */
 export interface SpeechPattern {
   averageSentenceLength: 'short' | 'medium' | 'long';
   fillerWords: string[];
@@ -30,48 +66,11 @@ export interface SpeechPattern {
   dialect: string;
 }
 
+/**
+ * 反应模板
+ */
 export interface ReactionTemplate {
   trigger: string;
   pattern: string[];
   description: string;
-}
-
-export const EMOTION_PRESETS: Record<string, PAD> = {
-  calm: { pleasure: 0, arousal: -0.3, dominance: 0 },
-  happy: { pleasure: 0.7, arousal: 0.4, dominance: 0.2 },
-  worried: { pleasure: -0.5, arousal: 0.6, dominance: -0.4 },
-  sad: { pleasure: -0.7, arousal: -0.2, dominance: -0.6 },
-  nostalgic: { pleasure: 0.2, arousal: -0.4, dominance: -0.2 },
-  nagging: { pleasure: -0.1, arousal: 0.3, dominance: 0.6 },
-};
-
-export function createDefaultPersonality(): OceanPersonality {
-  return {
-    openness: 5,
-    conscientiousness: 5,
-    extraversion: 5,
-    agreeableness: 5,
-    neuroticism: 5,
-  };
-}
-
-export function createDefaultPAD(): PAD {
-  return {
-    pleasure: 0,
-    arousal: 0,
-    dominance: 0,
-  };
-}
-
-export function validatePersonality(p: OceanPersonality): string[] {
-  const errors: string[] = [];
-  const keys: (keyof OceanPersonality)[] = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'];
-  
-  for (const key of keys) {
-    if (p[key] < 1 || p[key] > 10) {
-      errors.push(`${key} 必须在 1-10 范围内`);
-    }
-  }
-  
-  return errors;
 }

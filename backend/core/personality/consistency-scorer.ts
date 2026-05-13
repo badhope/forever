@@ -1,4 +1,11 @@
-import OpenAI from 'openai';
+/**
+ * Forever - 人格一致性评分器
+ *
+ * 使用双Agent模式对回复进行人格一致性评分
+ * 支持所有LLM平台（通过统一适配器）
+ */
+
+import { chat, type LLMConfig } from '../llm/index';
 import { buildConsistencyScoringPrompt } from './personality-filter';
 
 export interface ConsistencyScore {
@@ -8,12 +15,24 @@ export interface ConsistencyScore {
 }
 
 export class ConsistencyScorer {
-  private openai: OpenAI;
+  private readonly config: LLMConfig;
   private readonly threshold = 6;
   private readonly maxRetries = 2;
 
-  constructor(apiKey: string, baseURL: string = 'https://api.deepseek.com/v1') {
-    this.openai = new OpenAI({ apiKey, baseURL });
+  constructor(
+    apiKey: string,
+    provider: string = 'deepseek',
+    model?: string,
+    baseUrl?: string
+  ) {
+    this.config = {
+      provider,
+      apiKey,
+      model: model || undefined,
+      baseUrl: baseUrl || undefined,
+      temperature: 0,
+      maxTokens: 300,
+    };
   }
 
   async score(
@@ -22,18 +41,15 @@ export class ConsistencyScorer {
     history: string[]
   ): Promise<ConsistencyScore> {
     try {
-      const result = await this.openai.chat.completions.create({
-        model: 'deepseek-chat',
-        messages: [{
+      const result = await chat(
+        [{
           role: 'user',
           content: buildConsistencyScoringPrompt(characterName, response, history)
         }],
-        temperature: 0,
-        max_tokens: 300,
-        response_format: { type: 'json_object' },
-      });
+        this.config
+      );
 
-      const content = result.choices[0].message.content || '{}';
+      const content = result.content || '{}';
       return JSON.parse(content) as ConsistencyScore;
     } catch {
       return {
@@ -58,7 +74,7 @@ export class ConsistencyScorer {
 
     while (retries <= this.maxRetries) {
       const score = await this.score(characterName, currentResponse, history);
-      
+
       if (!this.needsRegeneration(score)) {
         return { finalResponse: currentResponse, score, retries };
       }
@@ -66,7 +82,7 @@ export class ConsistencyScorer {
       if (score.suggestion && retries < this.maxRetries) {
         currentResponse = this.applySuggestion(currentResponse, score.suggestion);
       }
-      
+
       retries++;
     }
 
