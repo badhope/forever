@@ -148,37 +148,75 @@ npx tsx examples/chat-complete.ts
 
 ```
 forever/
-├── backend/                     # 核心人格引擎（已实现）
-│   └── core/
-│       ├── agent/               # LangGraph智能体节点
-│       ├── personality/         # 七层人格系统
-│       │   ├── emotion-engine.ts    # PAD情绪动力学
-│       │   ├── character-card.ts    # 角色卡定义
-│       │   ├── consistency-scorer.ts# 一致性评分
-│       │   ├── human-imperfection.ts# 人性缺陷模拟
-│       │   └── prompt-template.ts   # Prompt构建器
-│       ├── memory/              # 时间感知记忆系统
-│       └── ethics/              # 伦理守护机制
-├── packages/                    # 插件化架构（新）
-│   ├── core/                   # 核心引擎包
+├── backend/                        # 核心引擎（已实现，可直接运行）
+│   ├── core/                       # 核心模块
+│   │   ├── index.ts                   # 统一导出
+│   │   ├── llm/                       # LLM统一适配器（16个平台）
+│   │   │   ├── providers.ts              # 平台注册表
+│   │   │   ├── openai-client.ts          # OpenAI兼容客户端
+│   │   │   ├── anthropic-client.ts       # Anthropic客户端
+│   │   │   ├── config.ts                 # LLM配置检测
+│   │   │   └── types.ts                  # 类型定义
+│   │   ├── bridge/                    # Python桥接层
+│   │   │   ├── local-memory.ts            # ChromaDB本地记忆 v2
+│   │   │   ├── tts-bridge.ts             # Chatterbox TTS桥接
+│   │   │   ├── avatar-bridge.ts          # SadTalker数字人桥接
+│   │   │   ├── memory-bridge.ts          # Mem0记忆桥接
+│   │   │   ├── python-env.ts             # Python环境检测
+│   │   │   └── env-checker.ts            # 环境状态检查
+│   │   ├── personality/               # 七层人格系统
+│   │   │   ├── emotion-engine.ts          # PAD情绪动力学+协方差
+│   │   │   ├── character-card.ts         # 角色卡完整定义
+│   │   │   ├── consistency-scorer.ts     # 双Agent一致性评分
+│   │   │   ├── human-imperfection.ts     # 人性缺陷模拟
+│   │   │   ├── personality-filter.ts     # OCEAN→行为约束
+│   │   │   ├── personality-types.ts      # 类型定义
+│   │   │   └── prompt-template.ts        # Prompt构建器
+│   │   ├── ethics/                    # 伦理守护
+│   │   │   └── guardian.ts               # 创伤检测+依赖监测+72h冷却
+│   │   ├── logger.ts                  # 结构化日志系统（零依赖）
+│   │   ├── config.ts                  # 统一配置管理
+│   │   ├── event-bus.ts               # 事件总线（19种事件）
+│   │   ├── errors.ts                  # 错误处理+重试+断路器
+│   │   └── pipeline.ts                # 多模态管线（TTS→Avatar）
+│   ├── memory/                      # 记忆系统
+│   │   ├── index.ts                   # 统一导出
+│   │   ├── tiered-memory.ts           # MemGPT式三层记忆（Core/Recall/Archival）
+│   │   ├── memory-extractor.ts        # LLM驱动记忆提取
+│   │   ├── memory-reflection.ts       # 记忆反思引擎
+│   │   ├── memory-types.ts            # 记忆类型定义
+│   │   └── time-aware-memory.ts       # 时间感知记忆
+│   └── session/                     # 会话管理
+│       ├── index.ts                   # 统一导出
+│       ├── session-store.ts           # 会话持久化（保存/恢复/导出）
+│       └── character-manager.ts       # 角色卡CRUD管理
+├── packages/                        # 插件化架构（设计阶段）
+│   ├── core/                       # 核心引擎包
 │   │   └── src/
-│   │       ├── agent/          # LangGraph工作流
-│   │       ├── personality/    # 人格系统
-│   │       └── plugin/         # 插件接口
+│   │       ├── agent/               # LangGraph工作流
+│   │       ├── personality/         # 人格系统
+│   │       └── plugin/              # 插件接口
 │   └── plugins/
-│       ├── voice-chatterbox/   # Chatterbox语音插件
-│       ├── memory-mem0/        # Mem0记忆插件
-│       └── llm-deepseek/       # DeepSeek LLM插件
+│       ├── voice-chatterbox/         # Chatterbox语音插件
+│       ├── memory-mem0/              # Mem0记忆插件
+│       └── llm-deepseek/             # DeepSeek LLM插件
 ├── apps/
-│   └── cli/                    # 命令行交互工具
-├── docs/                        # 架构文档
-│   ├── ARCHITECTURE.md         # 七层金字塔详解
-│   └── TECH_RESEARCH.md        # 技术选型调研
-├── examples/                    # 示例代码
-│   ├── chat-simple.ts          # 简单对话示例
-│   ├── chat-ultimate.ts        # 完整七层对话
-│   └── mother-demo.json        # 妈妈角色卡示例
-└── publish.html                 # 发布页面
+│   └── cli/                        # 命令行交互工具
+├── examples/                        # 可运行的示例
+│   ├── chat-complete.ts            # 完整版CLI入口（推荐）
+│   ├── chat-simple.ts              # 简单对话
+│   ├── chat-ultimate.ts            # 全七层对话
+│   ├── conversation.ts             # 对话系统核心v3
+│   ├── prompt-builder.ts           # Prompt构建器v3
+│   ├── emotion-engine.ts           # 简化版情绪引擎
+│   ├── character-card.ts           # 类型定义
+│   └── mother-demo.json            # 妈妈角色卡示例
+├── docs/                            # 架构文档
+│   ├── ARCHITECTURE.md             # 七层金字塔详解
+│   └── TECH_RESEARCH.md            # 技术选型调研
+├── .env.example                     # 环境变量配置模板
+├── tsconfig.json                    # TypeScript配置
+└── package.json                     # 项目配置
 ```
 
 ---
@@ -206,8 +244,17 @@ forever/
 | ✅ 可量化的人性缺陷噪声 | 已完成 | Stanford 2023 |
 | ✅ 昼夜节律时间感知记忆 | 已完成 | AgentTime 2024 |
 | ✅ 守护者伦理熔断机制 | 已完成 | EU AI Act |
-| ✅ 插件化语音合成 | 已完成 | Chatterbox MIT |
-| ✅ 智能记忆检索 | 已完成 | Mem0 Apache-2.0 |
+| ✅ LLM驱动记忆提取+反思 | 已完成 | MemGPT/Letta 2024 |
+| ✅ MemGPT式三层记忆架构 | 已完成 | MemGPT/Letta 2024 |
+| ✅ 智能体主动记忆管理 | 已完成 | MemGPT Tool Use |
+| ✅ 记忆衰减+去重+淘汰 | 已完成 | Ebbinghaus遗忘曲线 |
+| ✅ 会话持久化（保存/恢复） | 已完成 | - |
+| ✅ 角色卡CRUD管理 | 已完成 | - |
+| ✅ 多模态管线（TTS→Avatar） | 已完成 | - |
+| ✅ 流式响应 | 已完成 | - |
+| ✅ 结构化日志+事件总线 | 已完成 | - |
+| ✅ 错误重试+断路器 | 已完成 | - |
+| ✅ 16个LLM平台兼容 | 已完成 | OpenAI API兼容 |
 
 ---
 

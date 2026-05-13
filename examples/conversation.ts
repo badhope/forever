@@ -23,6 +23,9 @@ import { buildFullSystemPrompt } from './prompt-builder';
 import type { CharacterCard, Message } from './character-card';
 import { extractMemories, type ExtractedMemory } from '../backend/memory/memory-extractor';
 import { reflectOnMemories, type ReflectionResult } from '../backend/memory/memory-reflection';
+import { logger } from '../backend/core/logger';
+import { eventBus } from '../backend/core/event-bus';
+import { withRetry, LLMError } from '../backend/core/errors';
 
 // ============ 对话系统 ============
 
@@ -54,10 +57,10 @@ export class ForeverConversation {
       this.memoryEnabled = checkPythonPackage('chromadb');
       if (this.memoryEnabled) {
         const count = await getMemoryCount(this.characterId);
-        console.log(`  ✅ 记忆系统 (ChromaDB) 已启用，已有${count}条记忆`);
+        logger.info('conversation', `记忆系统已启用，已有${count}条记忆`);
       }
     } catch {
-      console.log('  ⚠️  记忆系统不可用');
+      logger.warn('conversation', '记忆系统不可用');
     }
   }
 
@@ -82,6 +85,7 @@ export class ForeverConversation {
     }
     const assessment = this.ethicsSystem.assessMessage(userMessage);
     if (assessment.riskLevel === 'critical') {
+      await eventBus.emit('ethics:critical', { message: userMessage });
       return {
         response: assessment.intervention!,
         emotionLabel: '担忧',
@@ -95,6 +99,7 @@ export class ForeverConversation {
 
     // Layer 5: 分析用户情绪 (PAD模型)
     const { emotion, label } = inferEmotionFromText(userMessage);
+    await eventBus.emit('emotion:changed', { emotion: label });
     activeLayers.push('PAD情绪分析');
 
     // Layer 3: 检索相关记忆
@@ -108,7 +113,10 @@ export class ForeverConversation {
           minImportance: 0.3,
         });
         memories = results.map(r => r.content);
-        if (memories.length > 0) activeLayers.push('关联记忆检索');
+        if (memories.length > 0) {
+          activeLayers.push('关联记忆检索');
+          await eventBus.emit('memory:retrieved', { count: memories.length });
+        }
       } catch { /* 不影响对话 */ }
     }
 
@@ -130,8 +138,13 @@ export class ForeverConversation {
     activeLayers.push('工作记忆');
 
     // 生成回复
-    const llmResponse = await chat(chatMessages, this.llmConfig);
+    await eventBus.emit('llm:request', { message: userMessage });
+    const llmResponse = await withRetry(
+      () => chat(chatMessages, this.llmConfig),
+      { maxRetries: 2, shouldRetry: (e) => e instanceof LLMError }
+    );
     let response = llmResponse.content;
+    await eventBus.emit('llm:response', { response: llmResponse.content, tokens: llmResponse.content.length });
 
     // 人性缺陷注入
     response = applyHumanImperfection(response);
@@ -161,6 +174,7 @@ export class ForeverConversation {
       memoriesExtracted = await this.extractAndStoreMemories(userMessage, response);
       if (memoriesExtracted > 0) {
         activeLayers.push(`LLM记忆提取(${memoriesExtracted}条)`);
+        await eventBus.emit('memory:stored', { count: memoriesExtracted });
       }
     }
 
@@ -170,6 +184,7 @@ export class ForeverConversation {
       reflectionSummary = await this.performReflection();
       if (reflectionSummary) {
         activeLayers.push('记忆反思');
+        await eventBus.emit('memory:reflected', { summary: reflectionSummary });
       }
     }
 
@@ -186,6 +201,8 @@ export class ForeverConversation {
     if (this.messages.length > 30) {
       this.messages = this.messages.slice(-30);
     }
+
+    await eventBus.emit('message:received', { character: this.character.name, response });
 
     return {
       response,
@@ -349,7 +366,8 @@ export class ForeverConversation {
 
       const score = parseInt(result.content.trim());
       return isNaN(score) ? 7 : Math.min(10, Math.max(1, score));
-    } catch {
+    } catch (error) {
+      logger.warn('conversation', '一致性评分失败', error);
       return 7;
     }
   }
@@ -388,7 +406,8 @@ export class ForeverConversation {
 
       const stored = await batchStoreMemories(this.characterId, items);
       return stored;
-    } catch {
+    } catch (error) {
+      logger.warn('conversation', 'LLM记忆提取失败，使用回退', error);
       // LLM 提取失败，回退到简单存储
       return this.fallbackStore(userMessage, response);
     }
@@ -457,7 +476,8 @@ export class ForeverConversation {
       }
 
       return reflection.summary || `发现${reflection.insights.length}条洞察`;
-    } catch {
+    } catch (error) {
+      logger.warn('conversation', '记忆反思失败', error);
       return '';
     }
   }
@@ -468,7 +488,7 @@ export class ForeverConversation {
       const decayed = await decayMemories(this.characterId, 0.05, 0.1);
       const deduped = await deduplicateMemories(this.characterId, 0.92);
       if (decayed > 0 || deduped > 0) {
-        console.log(`  🧹 记忆维护: 衰减${decayed}条, 去重移除${deduped}条`);
+        logger.info('conversation', `记忆维护: 衰减${decayed}条, 去重移除${deduped}条`);
       }
     } catch { /* 静默 */ }
   }
