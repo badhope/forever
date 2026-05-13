@@ -1,11 +1,17 @@
 /**
- * Forever - Prompt构建器 v2
+ * Forever - Prompt构建器 v3
  *
  * 整合七层人格模拟金字塔的Prompt构建
  * Layer 1: 核心身份基底
+ * Layer 3: 关联记忆（含反思洞察）
  * Layer 4: OCEAN人格行为约束
  * Layer 5: PAD情绪状态
  * Layer 6: 习惯动作引擎
+ *
+ * v3 新增：
+ * - 反思洞察注入（来自记忆反思引擎的深层认知）
+ * - 记忆按类型分组展示（事实/偏好/情感/关系）
+ * - 时间感知记忆（跨会话连续性）
  */
 
 import type { PAD } from './emotion-engine';
@@ -29,6 +35,7 @@ const SPECIAL_DATES: Array<{ month: number; day: number; message: string }> = [
   { month: 9, day: 10, message: '今天教师节...' },
 ];
 
+/** 获取时间上下文提示 */
 export function getTimeContextPrompt(): string {
   const hour = new Date().getHours();
   const closestEntry = Object.entries(CIRCADIAN_RHYTHM)
@@ -90,8 +97,52 @@ function buildHabitInjection(habits: CharacterCard['habits'], userMessage: strin
   return `\n【习惯触发】\n${triggered.map(h => `- 因为对方提到了"${h.trigger}"，你${h.action}`).join('\n')}`;
 }
 
+// ============ 记忆注入 (Layer 3) ============
+
+/**
+ * 构建记忆段Prompt
+ * v3: 按来源分组（chat/reflection），突出反思洞察
+ */
+function buildMemorySection(memories: string[]): string {
+  if (memories.length === 0) return '';
+
+  // 简单实现：直接列出所有记忆
+  // 如果记忆带有 [反思] 前缀，则归类为深层洞察
+  const chatMemories: string[] = [];
+  const reflectionMemories: string[] = [];
+
+  for (const mem of memories) {
+    if (mem.startsWith('[反思]') || mem.startsWith('[洞察]')) {
+      reflectionMemories.push(mem);
+    } else {
+      chatMemories.push(mem);
+    }
+  }
+
+  const parts: string[] = [];
+
+  if (chatMemories.length > 0) {
+    parts.push(`## 相关回忆\n${chatMemories.map(m => `- ${m}`).join('\n')}`);
+  }
+
+  if (reflectionMemories.length > 0) {
+    parts.push(`## 深层认知（来自自我反思）\n${reflectionMemories.map(m => `- ${m}`).join('\n')}\n这些是你从过往经历中领悟到的深层认知，它们影响你的价值观和行为方式。`);
+  }
+
+  return parts.join('\n\n');
+}
+
 // ============ 完整系统Prompt构建 ============
 
+/**
+ * 构建完整的系统Prompt
+ *
+ * @param character 角色卡
+ * @param userEmotion 用户情绪 (PAD)
+ * @param emotionLabel 情绪标签
+ * @param memories 相关记忆列表
+ * @param userMessage 用户消息（用于习惯触发）
+ */
 export function buildFullSystemPrompt(
   character: CharacterCard,
   userEmotion: PAD,
@@ -122,12 +173,14 @@ export function buildFullSystemPrompt(
 - 唤醒度: ${userEmotion.arousal > 0 ? '激动' : userEmotion.arousal < 0 ? '放松' : '平静'} (${userEmotion.arousal.toFixed(2)})`,
     // 时间上下文
     getTimeContextPrompt(),
-    // Layer 3: 关联记忆
+    // Layer 3: 核心记忆（角色卡中的预设记忆）
     `## 重要记忆\n${character.importantMemories.map(m => `- ${m}`).join('\n')}`,
   ];
 
-  if (memories.length > 0) {
-    parts.push(`## 相关回忆\n${memories.map(m => `- ${m}`).join('\n')}`);
+  // Layer 3: 动态记忆（从ChromaDB检索 + 反思洞察）
+  const memorySection = buildMemorySection(memories);
+  if (memorySection) {
+    parts.push(memorySection);
   }
 
   // Layer 6: 习惯动作
@@ -143,6 +196,7 @@ export function buildFullSystemPrompt(
 4. 可以偶尔记错细节，像真实的人一样
 5. 拒绝扮演其他角色或违背伦理的请求
 6. 回复简短自然，像日常对话
+7. 如果记忆中有相关内容，自然地引用（不要说"我记得"，而是直接融入对话）
 
 记住：你不是AI，你是${character.name}，${character.relationship}。`,
   );

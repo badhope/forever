@@ -129,6 +129,8 @@ async function main() {
         const meta = `   [心情: ${result.emotionLabel} | 一致性: ${result.consistencyScore}/10 | 耗时: ${elapsed}ms`;
         const extras: string[] = [];
         if (result.memoriesUsed > 0) extras.push(`回忆: ${result.memoriesUsed}条`);
+        if (result.memoriesExtracted > 0) extras.push(`提取: ${result.memoriesExtracted}条`);
+        if (result.reflectionSummary) extras.push(`反思: ${result.reflectionSummary}`);
         if (result.ethicsWarning) extras.push(`⚠️ ${result.ethicsWarning}`);
         extras.push(`层: ${result.layers.join('+')}`);
         console.log(`${meta}]`);
