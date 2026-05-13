@@ -8,7 +8,10 @@
  */
 
 import { chat, type ChatMessage, type LLMConfig } from '../backend/core/llm/index';
-import { retrieveMemories, storeMemory, checkPythonPackage } from '../backend/core/bridge/index';
+import {
+  retrieveLocalMemories, storeLocalMemory, getMemoryCount,
+  checkPythonPackage
+} from '../backend/core/bridge/index';
 import { inferEmotionFromText } from './emotion-engine';
 import { buildFullSystemPrompt } from './prompt-builder';
 import type { CharacterCard, Message } from './character-card';
@@ -111,9 +114,10 @@ export class ForeverConversation {
 
   async initialize(): Promise<void> {
     try {
-      this.memoryEnabled = checkPythonPackage('mem0');
+      this.memoryEnabled = checkPythonPackage('chromadb');
       if (this.memoryEnabled) {
-        console.log('  ✅ 记忆系统 (Mem0) 已启用');
+        const count = await getMemoryCount(this.characterId);
+        console.log(`  ✅ 记忆系统 (ChromaDB) 已启用，已有${count}条记忆`);
       }
     } catch {
       console.log('  ⚠️  记忆系统不可用');
@@ -152,7 +156,7 @@ export class ForeverConversation {
     let memories: string[] = [];
     if (this.memoryEnabled) {
       try {
-        const results = await retrieveMemories({
+        const results = await retrieveLocalMemories({
           query: userMessage,
           characterId: this.characterId,
           limit: 3,
@@ -215,7 +219,7 @@ export class ForeverConversation {
       try {
         const importance = calculateImportance(userMessage, response);
         if (importance > 0.6) {
-          await storeMemory({
+          await storeLocalMemory({
             content: `用户说：${userMessage}，${this.character.name}回复：${response}`,
             characterId: this.characterId,
             importance,

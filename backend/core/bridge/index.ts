@@ -11,3 +11,11 @@ export { generateTalkingVideo } from './avatar-bridge';
 export type { AvatarRequest, AvatarResult } from './avatar-bridge';
 export { checkEnvironment } from './env-checker';
 export type { EnvironmentStatus } from './env-checker';
+
+// 本地记忆系统（ChromaDB，无需API Key）
+export {
+  storeMemory as storeLocalMemory,
+  retrieveMemories as retrieveLocalMemories,
+  getAllMemories,
+  getMemoryCount,
+} from './local-memory';
