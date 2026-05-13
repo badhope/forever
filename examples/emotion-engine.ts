@@ -1,8 +1,10 @@
 /**
- * Forever - 情绪引擎
+ * Forever - 简化版情绪引擎（示例用）
  *
  * 基于 PAD (Pleasure-Arousal-Dominance) 情感模型
  * 通过关键词词典推断文本情绪，映射到最近的情绪质心
+ *
+ * 注意：完整版见 backend/core/personality/emotion-engine.ts
  */
 
 // ============ 类型定义 ============

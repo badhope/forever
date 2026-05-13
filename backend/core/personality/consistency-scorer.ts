@@ -35,6 +35,7 @@ export class ConsistencyScorer {
     };
   }
 
+  /** 评估回复的人格一致性分数 */
   async score(
     characterName: string,
     response: string,
@@ -60,10 +61,12 @@ export class ConsistencyScorer {
     }
   }
 
+  /** 判断是否需要重新生成回复 */
   needsRegeneration(score: ConsistencyScore): boolean {
     return score.overall < this.threshold;
   }
 
+  /** 评估并自动修正回复一致性，最多重试 maxRetries 次 */
   async verifyAndCorrect(
     characterName: string,
     response: string,

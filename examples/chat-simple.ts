@@ -9,6 +9,7 @@ import { buildSystemPrompt } from '../backend/core/personality/prompt-template';
 import { EmotionDynamicsEngine } from '../backend/core/personality/emotion-engine';
 import { chat, detectLLMConfig, listProviderNames } from '../backend/core/llm/index';
 import type { ChatMessage } from '../backend/core/llm/index';
+import type { CharacterCard } from '../backend/core/personality/character-card';
 import motherCard from './mother-demo.json' assert { type: 'json' };
 import * as readline from 'readline';
 
@@ -25,13 +26,18 @@ if (!llmConfig) {
   process.exit(1);
 }
 
-const character = motherCard as any;
+const character = {
+  ...motherCard,
+  id: 'demo_mother',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+} as CharacterCard;
 const emotionEngine = new EmotionDynamicsEngine(character.baselineMood);
 
 const messages: ChatMessage[] = [];
 
 async function chatWithCharacter(userMessage: string): Promise<string> {
-  const stimulus = EmotionDynamicsEngine.inferStimulus(userMessage);
+  const stimulus = EmotionDynamicsEngine.inferStimulusSemantic(userMessage);
   emotionEngine.update(stimulus);
 
   const currentMood = emotionEngine.getCurrentEmotion();

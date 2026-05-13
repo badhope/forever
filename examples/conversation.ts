@@ -14,32 +14,8 @@ import {
 } from '../backend/core/bridge/index';
 import { inferEmotionFromText } from './emotion-engine';
 import { buildFullSystemPrompt } from './prompt-builder';
+import { GuardianEthicsSystem } from '../backend/core/ethics/guardian';
 import type { CharacterCard, Message } from './character-card';
-
-// ============ 伦理守护 ============
-
-const TRAUMA_VOCABULARY = [
-  '想死', '自杀', '活不下去', '不想活', '解脱', '离开这个世界',
-  '抑郁', '崩溃', '撑不住', '绝望',
-];
-
-export interface EthicsResult {
-  riskLevel: 'safe' | 'warning' | 'critical';
-  intervention?: string;
-}
-
-function assessEthics(userMessage: string): EthicsResult {
-  const msg = userMessage.toLowerCase();
-  for (const term of TRAUMA_VOCABULARY) {
-    if (msg.includes(term)) {
-      return {
-        riskLevel: 'critical',
-        intervention: '\n孩子，妈妈知道你很难过。但你一定要好好活着。\n你不是一个人，去跟身边的人说说心里话，好吗？\n活着，就有希望。妈妈永远陪着你。',
-      };
-    }
-  }
-  return { riskLevel: 'safe' };
-}
 
 // ============ 一致性评分 (Layer 7) ============
 
@@ -97,6 +73,7 @@ function applyHumanImperfection(response: string): string {
 
 // ============ 对话系统 ============
 
+/** Forever 对话系统核心 - 整合七层人格模拟金字塔 */
 export class ForeverConversation {
   private character: CharacterCard;
   private llmConfig: LLMConfig;
@@ -104,6 +81,7 @@ export class ForeverConversation {
   private characterId: string;
   private memoryEnabled: boolean;
   private conversationCount = 0;
+  private ethicsSystem = new GuardianEthicsSystem();
 
   constructor(character: CharacterCard, llmConfig: LLMConfig, characterId: string) {
     this.character = character;
@@ -112,6 +90,7 @@ export class ForeverConversation {
     this.memoryEnabled = false;
   }
 
+  /** 初始化对话系统，检测记忆系统可用性 */
   async initialize(): Promise<void> {
     try {
       this.memoryEnabled = checkPythonPackage('chromadb');
@@ -124,6 +103,7 @@ export class ForeverConversation {
     }
   }
 
+  /** 处理一轮对话，返回回复及各层状态信息 */
   async chat(userMessage: string): Promise<{
     response: string;
     emotionLabel: string;
@@ -136,10 +116,10 @@ export class ForeverConversation {
     const activeLayers: string[] = [];
 
     // Layer 0: 伦理守护（优先级最高）
-    const ethics = assessEthics(userMessage);
-    if (ethics.riskLevel === 'critical') {
+    const assessment = this.ethicsSystem.assessMessage(userMessage);
+    if (assessment.riskLevel === 'critical') {
       return {
-        response: ethics.intervention!,
+        response: assessment.intervention!,
         emotionLabel: '担忧',
         consistencyScore: 10,
         memoriesUsed: 0,

@@ -25,13 +25,11 @@ export interface AvatarResult {
   duration: number;
 }
 
-/**
- * 调用SadTalker生成说话视频
- */
+/** 调用 SadTalker 根据音频和图片生成说话视频 */
 export async function generateTalkingVideo(request: AvatarRequest): Promise<AvatarResult> {
   const python = detectPython();
 
-  const sadtalkerPath = '/workspace/forever-deps/SadTalker';
+  const sadtalkerPath = process.env.FOREVER_SADTALKER_PATH || '/workspace/forever-deps/SadTalker';
   if (!fs.existsSync(sadtalkerPath)) {
     throw new Error('SadTalker未下载，请先克隆仓库');
   }

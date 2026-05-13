@@ -30,6 +30,7 @@ export class HumanImperfectionLayer {
     ];
   }
 
+  /** 对回复应用人性缺陷：填充词、话题偏移、重复 */
   applyImperfections(response: string): string {
     let result = response;
 
@@ -53,10 +54,12 @@ export class HumanImperfectionLayer {
     return result;
   }
 
+  /** 判断是否应该沉默（概率由 silenceRate 控制） */
   shouldBeSilent(): boolean {
     return Math.random() < this.config.silenceRate;
   }
 
+  /** 获取沉默时的随机回复 */
   getSilenceResponse(): string {
     const silences = [
       '...',
@@ -67,6 +70,7 @@ export class HumanImperfectionLayer {
     return silences[Math.floor(Math.random() * silences.length)];
   }
 
+  /** 获取记忆模糊时的随机回复 */
   getMemoryError(): string {
     const errors = [
       '哎呀，人老了记性不好了...',

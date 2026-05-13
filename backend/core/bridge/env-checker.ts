@@ -41,7 +41,8 @@ export function checkEnvironment(): EnvironmentStatus {
       numpy: 'numpy',
     })) {
       const installed = checkPythonPackage(pkg);
-      (status.packages as any)[key] = {
+      const pkgKey = key as keyof typeof status.packages;
+      status.packages[pkgKey] = {
         installed,
         version: installed ? getPythonPackageVersion(pkg) || 'unknown' : undefined,
       };

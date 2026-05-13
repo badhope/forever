@@ -42,7 +42,10 @@ def main():
     params = json.loads(sys.argv[1])
     action = params['action']
     character_id = params['characterId']
-    db_path = params.get('dbPath', '/tmp/forever_chroma')
+    db_path = params.get('dbPath', '')
+    if not db_path:
+        import os
+        db_path = os.path.join(os.environ.get('FOREVER_DATA_DIR', '/tmp'), 'forever_chroma')
 
     client = chromadb.PersistentClient(path=db_path)
     collection = client.get_or_create_collection(
@@ -109,9 +112,7 @@ main()
 
 // ============ 公开API ============
 
-/**
- * 存储记忆
- */
+/** 存储记忆到ChromaDB向量数据库 */
 export async function storeMemory(request: MemoryStoreRequest): Promise<MemoryItem> {
   const python = detectPython();
   if (!checkPythonPackage('chromadb')) {
@@ -142,9 +143,7 @@ export async function storeMemory(request: MemoryStoreRequest): Promise<MemoryIt
   });
 }
 
-/**
- * 检索相关记忆
- */
+/** 从ChromaDB检索与查询语义最相关的记忆 */
 export async function retrieveMemories(request: MemoryRetrieveRequest): Promise<MemoryItem[]> {
   const python = detectPython();
   if (!checkPythonPackage('chromadb')) return [];
@@ -170,9 +169,7 @@ export async function retrieveMemories(request: MemoryRetrieveRequest): Promise<
   });
 }
 
-/**
- * 获取全部记忆
- */
+/** 获取角色的全部记忆 */
 export async function getAllMemories(characterId: string): Promise<MemoryItem[]> {
   const python = detectPython();
   if (!checkPythonPackage('chromadb')) return [];
@@ -196,9 +193,7 @@ export async function getAllMemories(characterId: string): Promise<MemoryItem[]>
   });
 }
 
-/**
- * 获取记忆数量
- */
+/** 获取角色的记忆总数 */
 export async function getMemoryCount(characterId: string): Promise<number> {
   const python = detectPython();
   if (!checkPythonPackage('chromadb')) return 0;

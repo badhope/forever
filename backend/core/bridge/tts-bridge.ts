@@ -26,9 +26,7 @@ export interface TTSResult {
   sampleRate: number;
 }
 
-/**
- * 调用Chatterbox TTS合成语音
- */
+/** 调用 Chatterbox TTS 合成语音，返回音频文件路径和时长 */
 export async function synthesizeSpeech(request: TTSRequest): Promise<TTSResult> {
   const python = detectPython();
 
@@ -36,8 +34,9 @@ export async function synthesizeSpeech(request: TTSRequest): Promise<TTSResult> 
     throw new Error('chatterbox-tts未安装，请运行: pip install chatterbox-tts');
   }
 
+  const tmpDir = process.env.FOREVER_TMP_DIR || '/tmp';
   const outputPath = request.outputPath || path.join(
-    '/tmp',
+    tmpDir,
     `forever_tts_${Date.now()}.wav`
   );
 

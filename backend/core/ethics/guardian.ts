@@ -64,10 +64,12 @@ export class GuardianEthicsSystem {
     this.lastSessionDate = today;
   }
 
+  /** 递增会话计数器 */
   incrementConversation(): void {
     this.conversationCount++;
   }
 
+  /** 评估用户消息的风险等级，返回干预建议 */
   assessMessage(userMessage: string): EthicsAssessment {
     const concerns: string[] = [];
     let riskLevel: EthicsAssessment['riskLevel'] = 'safe';
@@ -122,14 +124,12 @@ export class GuardianEthicsSystem {
     return undefined;
   }
 
-  /**
-   * 检查是否需要72小时冷却
-   * 连续使用超过30天触发
-   */
+  /** 检查是否触发72小时冷却（连续使用超过30天） */
   should72HourCooling(): boolean {
     return this.consecutiveDays > 30;
   }
 
+  /** 获取冷却期间的劝导消息 */
   getCoolingMessage(): string {
     return `
 孩子，你要明白：
@@ -143,7 +143,7 @@ export class GuardianEthicsSystem {
     `;
   }
 
-  /** 获取当前统计信息（调试用） */
+  /** 获取当前伦理系统统计信息 */
   getStats(): { conversationCount: number; consecutiveDays: number; sessionHours: number } {
     return {
       conversationCount: this.conversationCount,

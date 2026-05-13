@@ -10,13 +10,11 @@
     "./plugin": "./dist/plugin/plugin-interface.js",
     "./plugin-manager": "./dist/plugin/plugin-manager.js",
     "./agent": "./dist/agent/graph.js",
-    "./personality": "./dist/personality/prompt-template.js"
+    "./personality": "./dist/personality/index.js"
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch",
-    "lint": "eslint src/**/*.ts",
-    "test": "vitest"
+    "dev": "tsc --watch"
   },
   "dependencies": {
     "@langchain/core": "^0.1.0",

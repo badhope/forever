@@ -40,6 +40,7 @@ export async function storeMemory(request: MemoryStoreRequest): Promise<MemoryIt
   const script = `
 import json
 import sys
+import time
 
 try:
     from mem0 import Memory

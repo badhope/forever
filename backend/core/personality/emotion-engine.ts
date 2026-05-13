@@ -1,11 +1,5 @@
 import { PAD, EmotionLabel } from './personality-types';
 
-const PAD_COVARIANCE_MATRIX = [
-  [1.00,  0.25, -0.15],
-  [0.25,  1.00,  0.40],
-  [-0.15, 0.40,  1.00],
-];
-
 const SEMANTIC_EMBEDDINGS: Record<string, PAD> = {
   positive: { pleasure: 0.4, arousal: 0.2, dominance: 0.1 },
   negative: { pleasure: -0.5, arousal: 0.3, dominance: 0.0 },
@@ -55,6 +49,7 @@ export class EmotionDynamicsEngine {
     this.lastUpdateTime = Date.now();
   }
 
+  // Covariance values: P-A=0.25, P-D=-0.15, A-D=0.40
   private applyCovariance(pad: PAD): PAD {
     const result = { ...pad };
     result.pleasure = pad.pleasure + 0.25 * pad.arousal + (-0.15) * pad.dominance;

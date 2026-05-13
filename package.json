@@ -3,9 +3,6 @@
   "version": "2.0.0",
   "description": "Forever 永生 - 开源AI数字记忆留存框架。基于七层人格模拟金字塔，通过LangGraph智能体工作流+插件化架构，集成Chatterbox语音合成、Mem0记忆系统、SadTalker数字人，实现高度拟真的逝者数字分身。",
   "type": "module",
-  "bin": {
-    "forever": "./apps/cli/dist/index.js"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/badhope/forever.git"
@@ -14,7 +11,10 @@
   "scripts": {
     "chat": "tsx examples/chat-complete.ts",
     "chat:simple": "tsx examples/chat-simple.ts",
-    "chat:ultimate": "tsx examples/chat-ultimate.ts"
+    "chat:ultimate": "tsx examples/chat-ultimate.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "clean": "rm -rf dist"
   },
   "keywords": [
     "ai", "agent", "digital-immortality", "digital-legacy", "grief-therapy",

@@ -41,6 +41,7 @@ export class TimeAwareMemorySystem {
     this.lastConversationDate = new Date().toDateString();
   }
 
+  /** 添加一条记忆，附带重要性和情感权重 */
   addMemory(memory: MemoryUnit, importance: number = 0.5, emotionalWeight: number = 0): void {
     const now = Date.now();
     this.memories.push({
@@ -64,6 +65,7 @@ export class TimeAwareMemorySystem {
     return recency * 0.5 + memory.importance * 0.3 + frequency * 0.2 + memory.emotionalWeight * 0.3;
   }
 
+  /** 按激活分数检索最相关的记忆 */
   retrieveRelevantMemories(query: string, limit: number = 5): MemoryUnit[] {
     for (const m of this.memories) {
       m.lastAccessedAt = Date.now();
@@ -106,6 +108,7 @@ export class TimeAwareMemorySystem {
     return '';
   }
 
+  /** 生成包含昼夜节律、跨会话问候、特殊日期的时间上下文提示 */
   getTimeContextPrompt(): string {
     let prompt = this.getCurrentCircadianContext();
     

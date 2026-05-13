@@ -22,6 +22,7 @@ import { TimeAwareMemorySystem } from '../backend/memory/time-aware-memory';
 import { GuardianEthicsSystem } from '../backend/core/ethics/guardian';
 import { chat, detectLLMConfig } from '../backend/core/llm/index';
 import type { ChatMessage } from '../backend/core/llm/index';
+import type { CharacterCard } from '../backend/core/personality/character-card';
 import motherCard from './mother-demo.json' assert { type: 'json' };
 import * as readline from 'readline';
 
@@ -38,7 +39,12 @@ if (!llmConfig) {
   process.exit(1);
 }
 
-const character = motherCard as any;
+const character = {
+  ...motherCard,
+  id: 'demo_mother',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+} as CharacterCard;
 
 const emotionEngine = new EmotionDynamicsEngine(character.baselineMood);
 const consistencyScorer = new ConsistencyScorer(
