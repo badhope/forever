@@ -5,6 +5,13 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "type": "module",
+  "exports": {
+    ".": "./dist/index.js",
+    "./plugin": "./dist/plugin/plugin-interface.js",
+    "./plugin-manager": "./dist/plugin/plugin-manager.js",
+    "./agent": "./dist/agent/graph.js",
+    "./personality": "./dist/personality/prompt-template.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
