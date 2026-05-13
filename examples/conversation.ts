@@ -1,35 +1,33 @@
 /**
- * Forever - 对话系统核心 v3
+ * Forever - 对话系统核心 v4
  *
- * 完整七层人格模拟金字塔 + 智能记忆系统
- * L1 核心身份 → L2 工作记忆 → L3 关联记忆 → L4 OCEAN人格
- * → L5 PAD情绪 → L6 习惯动作 → L7 一致性反思
+ * 完整七层人格模拟金字塔 + MemGPT式分层记忆
+ * L1 核心身份 → L2 工作记忆 → L3 分层记忆(Core/Recall/Archival)
+ * → L4 OCEAN人格 → L5 PAD情绪 → L6 习惯动作 → L7 一致性反思
  *
- * v3 新增：
- * - LLM 驱动的记忆提取（替代关键词匹配）
- * - 记忆反思引擎（定期整合记忆、发现冲突）
- * - 记忆衰减与去重
- * - 记忆来源标记（chat/reflection）
+ * v4 变更：
+ * - 接入 TieredMemoryManager 替代散落的 bridge 调用
+ * - 记忆检索升级为跨层搜索（Core + Recall + Archival）
+ * - 记忆存储使用智能路由（按重要性自动分层）
+ * - 核心记忆始终注入 Prompt
  */
 
 import { chat, chatStream, type ChatMessage, type LLMConfig } from '../backend/core/llm/index';
-import {
-  retrieveLocalMemories, storeLocalMemory, getMemoryCount,
-  batchStoreMemories, decayMemories, deduplicateMemories,
-  checkPythonPackage,
-} from '../backend/core/bridge/index';
+import { checkPythonPackage } from '../backend/core/bridge/index';
 import { inferEmotionFromText } from './emotion-engine';
 import { buildFullSystemPrompt } from './prompt-builder';
 import type { CharacterCard, Message } from './character-card';
-import { extractMemories, type ExtractedMemory } from '../backend/memory/memory-extractor';
-import { reflectOnMemories, type ReflectionResult } from '../backend/memory/memory-reflection';
+import { extractMemories } from '../backend/memory/memory-extractor';
+import { reflectOnMemories } from '../backend/memory/memory-reflection';
+import { TieredMemoryManager } from '../backend/memory/tiered-memory';
+import type { MemorySearchResult } from '../backend/memory/tiered-memory';
 import { logger } from '../backend/core/logger';
 import { eventBus } from '../backend/core/event-bus';
 import { withRetry, LLMError } from '../backend/core/errors';
 
 // ============ 对话系统 ============
 
-/** Forever 对话系统核心 - 整合七层人格模拟金字塔 + 智能记忆系统 */
+/** Forever 对话系统核心 - 整合七层人格模拟金字塔 + MemGPT式分层记忆 */
 export class ForeverConversation {
   private character: CharacterCard;
   private llmConfig: LLMConfig;
@@ -39,10 +37,11 @@ export class ForeverConversation {
   private conversationCount = 0;
   private ethicsSystem: any = null;
 
+  /** MemGPT式分层记忆管理器 */
+  private memoryManager: TieredMemoryManager | null = null;
+
   /** 反思触发间隔（每N轮对话做一次记忆反思） */
   private readonly reflectionInterval = 10;
-  /** 衰减触发间隔（每N轮对话做一次记忆衰减） */
-  private readonly decayInterval = 20;
 
   constructor(character: CharacterCard, llmConfig: LLMConfig, characterId: string) {
     this.character = character;
@@ -56,11 +55,24 @@ export class ForeverConversation {
     try {
       this.memoryEnabled = checkPythonPackage('chromadb');
       if (this.memoryEnabled) {
-        const count = await getMemoryCount(this.characterId);
-        logger.info('conversation', `记忆系统已启用，已有${count}条记忆`);
+        // 初始化分层记忆管理器
+        this.memoryManager = new TieredMemoryManager(
+          this.characterId, this.llmConfig
+        );
+        await this.memoryManager.loadCoreMemory();
+
+        // 如果核心记忆为空，从角色卡初始化
+        const stats = await this.memoryManager.getStats();
+        if (stats.coreBlocks === 0) {
+          this.memoryManager.initializeFromCharacterCard(this.character);
+          this.memoryManager.saveCoreMemory();
+          logger.info('conversation', '从角色卡初始化核心记忆');
+        }
+
+        logger.info('conversation', `分层记忆已启用 (Core:${stats.coreBlocks} Recall:${stats.recallCount} Archival:${stats.archivalCount})`);
       }
-    } catch {
-      logger.warn('conversation', '记忆系统不可用');
+    } catch (error) {
+      logger.warn('conversation', '记忆系统不可用', error);
     }
   }
 
@@ -102,28 +114,40 @@ export class ForeverConversation {
     await eventBus.emit('emotion:changed', { emotion: label });
     activeLayers.push('PAD情绪分析');
 
-    // Layer 3: 检索相关记忆
+    // Layer 3: 分层记忆检索（Core + Recall + Archival 跨层搜索）
     let memories: string[] = [];
-    if (this.memoryEnabled) {
+    if (this.memoryManager) {
       try {
-        const results = await retrieveLocalMemories({
-          query: userMessage,
-          characterId: this.characterId,
-          limit: 5,
-          minImportance: 0.3,
+        const searchResults = await this.memoryManager.searchAll(userMessage, 8);
+        memories = searchResults.map(r => {
+          const sourceTag = r.source === 'core' ? '[核心]' : r.source === 'archival' ? '[洞察]' : '';
+          return r.content;
         });
-        memories = results.map(r => r.content);
         if (memories.length > 0) {
-          activeLayers.push('关联记忆检索');
-          await eventBus.emit('memory:retrieved', { count: memories.length });
+          const coreCount = searchResults.filter(r => r.source === 'core').length;
+          const recallCount = searchResults.filter(r => r.source === 'recall').length;
+          const archivalCount = searchResults.filter(r => r.source === 'archival').length;
+          activeLayers.push(`分层记忆(C:${coreCount} R:${recallCount} A:${archivalCount})`);
+          await eventBus.emit('memory:retrieved', { count: memories.length, core: coreCount, recall: recallCount, archival: archivalCount });
         }
-      } catch { /* 不影响对话 */ }
+      } catch (error) {
+        logger.warn('conversation', '记忆检索失败', error);
+      }
     }
 
-    // Layer 1+4+5+6: 构建完整系统Prompt
-    const systemPrompt = buildFullSystemPrompt(
+    // Layer 1+4+5+6: 构建完整系统Prompt（含核心记忆）
+    let systemPrompt = buildFullSystemPrompt(
       this.character, emotion, label, memories, userMessage
     );
+
+    // 注入核心记忆（始终在上下文中）
+    if (this.memoryManager) {
+      const coreText = this.memoryManager.getCoreMemoryText();
+      if (coreText) {
+        systemPrompt += '\n\n' + coreText;
+      }
+    }
+
     activeLayers.push('核心身份+OCEAN人格+习惯动作');
 
     // Layer 2: 工作记忆
@@ -149,7 +173,7 @@ export class ForeverConversation {
     // 人性缺陷注入
     response = applyHumanImperfection(response);
 
-    // Layer 7: 一致性反思（每3轮做一次完整评分，节省token）
+    // Layer 7: 一致性反思（每3轮做一次完整评分）
     let consistencyScore = 7;
     if (this.conversationCount % 3 === 0) {
       consistencyScore = await this.scoreConsistency(userMessage, response);
@@ -168,9 +192,9 @@ export class ForeverConversation {
       }
     }
 
-    // 智能记忆提取（LLM驱动）
+    // 智能记忆提取 + 分层存储
     let memoriesExtracted = 0;
-    if (this.memoryEnabled) {
+    if (this.memoryManager) {
       memoriesExtracted = await this.extractAndStoreMemories(userMessage, response);
       if (memoriesExtracted > 0) {
         activeLayers.push(`LLM记忆提取(${memoriesExtracted}条)`);
@@ -180,17 +204,12 @@ export class ForeverConversation {
 
     // 定期记忆反思
     let reflectionSummary: string | undefined;
-    if (this.memoryEnabled && this.conversationCount % this.reflectionInterval === 0) {
+    if (this.memoryManager && this.conversationCount % this.reflectionInterval === 0) {
       reflectionSummary = await this.performReflection();
       if (reflectionSummary) {
         activeLayers.push('记忆反思');
         await eventBus.emit('memory:reflected', { summary: reflectionSummary });
       }
-    }
-
-    // 定期记忆衰减 + 去重
-    if (this.memoryEnabled && this.conversationCount % this.decayInterval === 0) {
-      await this.maintenance();
     }
 
     // 更新工作记忆
@@ -245,25 +264,28 @@ export class ForeverConversation {
     const { emotion, label } = inferEmotionFromText(userMessage);
     activeLayers.push('PAD情绪分析');
 
-    // Memory retrieval
+    // Layer 3: 分层记忆检索
     let memories: string[] = [];
-    if (this.memoryEnabled) {
+    if (this.memoryManager) {
       try {
-        const results = await retrieveLocalMemories({
-          query: userMessage,
-          characterId: this.characterId,
-          limit: 5,
-          minImportance: 0.3,
-        });
-        memories = results.map(r => r.content);
-        if (memories.length > 0) activeLayers.push('关联记忆检索');
+        const searchResults = await this.memoryManager.searchAll(userMessage, 8);
+        memories = searchResults.map(r => r.content);
+        if (memories.length > 0) {
+          const coreCount = searchResults.filter(r => r.source === 'core').length;
+          const recallCount = searchResults.filter(r => r.source === 'recall').length;
+          activeLayers.push(`分层记忆(C:${coreCount} R:${recallCount})`);
+        }
       } catch { /* skip */ }
     }
 
     // Build prompt
-    const systemPrompt = buildFullSystemPrompt(
+    let systemPrompt = buildFullSystemPrompt(
       this.character, emotion, label, memories, userMessage
     );
+    if (this.memoryManager) {
+      const coreText = this.memoryManager.getCoreMemoryText();
+      if (coreText) systemPrompt += '\n\n' + coreText;
+    }
     activeLayers.push('核心身份+OCEAN人格+习惯动作');
 
     const chatMessages: ChatMessage[] = [
@@ -304,21 +326,16 @@ export class ForeverConversation {
 
     // Memory extraction
     let memoriesExtracted = 0;
-    if (this.memoryEnabled) {
+    if (this.memoryManager) {
       memoriesExtracted = await this.extractAndStoreMemories(userMessage, fullResponse);
       if (memoriesExtracted > 0) activeLayers.push(`LLM记忆提取(${memoriesExtracted}条)`);
     }
 
     // Periodic reflection
     let reflectionSummary: string | undefined;
-    if (this.memoryEnabled && this.conversationCount % this.reflectionInterval === 0) {
+    if (this.memoryManager && this.conversationCount % this.reflectionInterval === 0) {
       reflectionSummary = await this.performReflection();
       if (reflectionSummary) activeLayers.push('记忆反思');
-    }
-
-    // Periodic maintenance
-    if (this.memoryEnabled && this.conversationCount % this.decayInterval === 0) {
-      await this.maintenance();
     }
 
     // Update working memory
@@ -340,6 +357,16 @@ export class ForeverConversation {
       layers: activeLayers,
       reflectionSummary,
     };
+  }
+
+  /** 获取记忆管理器（供外部查询） */
+  getMemoryManager(): TieredMemoryManager | null {
+    return this.memoryManager;
+  }
+
+  /** 获取工作记忆（供会话持久化使用） */
+  getMessages(): Message[] {
+    return this.messages;
   }
 
   // ============ 私有方法 ============
@@ -372,11 +399,13 @@ export class ForeverConversation {
     }
   }
 
-  /** LLM 驱动的记忆提取 + 存储 */
+  /** LLM 驱动的记忆提取 + 智能分层存储 */
   private async extractAndStoreMemories(
     userMessage: string,
     response: string,
   ): Promise<number> {
+    if (!this.memoryManager) return 0;
+
     try {
       const recentMessages = this.messages.slice(-4).map(m => ({
         role: m.role,
@@ -395,26 +424,26 @@ export class ForeverConversation {
         return 0;
       }
 
-      // 批量存储提取到的记忆
-      const items = extraction.memories.map(mem => ({
-        content: mem.content,
-        importance: mem.importance,
-        emotion: mem.emotion,
-        tags: mem.tags,
-        source: 'chat' as const,
-      }));
+      // 使用 TieredMemoryManager 的智能路由存储
+      for (const mem of extraction.memories) {
+        await this.memoryManager.smartStore(
+          mem.content,
+          mem.importance,
+          { emotion: mem.emotion, tags: mem.tags, source: 'chat' }
+        );
+      }
 
-      const stored = await batchStoreMemories(this.characterId, items);
-      return stored;
+      return extraction.memories.length;
     } catch (error) {
       logger.warn('conversation', 'LLM记忆提取失败，使用回退', error);
-      // LLM 提取失败，回退到简单存储
       return this.fallbackStore(userMessage, response);
     }
   }
 
   /** 回退记忆存储（关键词匹配） */
   private async fallbackStore(userMessage: string, response: string): Promise<number> {
+    if (!this.memoryManager) return 0;
+
     const keywords = ['想', '爱', '记得', '第一次', '永远', '重要', '特别', '生日', '节日'];
     const text = (userMessage + response).toLowerCase();
     let importance = 0.5;
@@ -425,32 +454,31 @@ export class ForeverConversation {
 
     if (importance < 0.6) return 0;
 
-    await storeLocalMemory({
-      content: `${this.character.name}和用户的对话：用户说「${userMessage}」，${this.character.name}回复「${response}」`,
-      characterId: this.characterId,
+    await this.memoryManager.smartStore(
+      `${this.character.name}和用户的对话：用户说「${userMessage}」，${this.character.name}回复「${response}」`,
       importance,
-      emotion: 'neutral',
-      source: 'chat',
-    });
+      { emotion: 'neutral', source: 'chat' }
+    );
 
     return 1;
   }
 
-  /** 执行记忆反思 */
+  /** 执行记忆反思（使用分层记忆的跨层搜索） */
   private async performReflection(): Promise<string> {
+    if (!this.memoryManager) return '';
+
     try {
-      const allMemories = await retrieveLocalMemories({
-        query: this.character.name,
-        characterId: this.characterId,
-        limit: 20,
-      });
+      // 从 Recall 层获取记忆用于反思
+      const recallMemories = await this.memoryManager.recallSearch(
+        this.character.name, 20
+      );
 
-      if (allMemories.length < 5) return '';
+      if (recallMemories.length < 5) return '';
 
-      const reflection: ReflectionResult = await reflectOnMemories(
+      const reflection = await reflectOnMemories(
         this.character.name,
         this.character.coreTraits,
-        allMemories,
+        recallMemories,
         this.llmConfig,
       );
 
@@ -458,20 +486,16 @@ export class ForeverConversation {
         return '';
       }
 
-      // 将反思洞察存储为新的记忆
+      // 将反思洞察存入 Archival 层
       if (reflection.insights.length > 0) {
-        const insightItems = reflection.insights
-          .filter(ins => ins.importance >= 0.6)
-          .map(ins => ({
-            content: ins.content,
-            importance: ins.importance,
-            emotion: 'warm',
-            tags: [ins.type, ...ins.relatedMemories.slice(0, 2)],
-            source: 'reflection' as const,
-          }));
-
-        if (insightItems.length > 0) {
-          await batchStoreMemories(this.characterId, insightItems);
+        for (const ins of reflection.insights) {
+          if (ins.importance >= 0.6) {
+            await this.memoryManager.archivalInsert(ins.content, {
+              emotion: 'warm',
+              tags: [ins.type, ...ins.relatedMemories.slice(0, 2)],
+              source: 'reflection',
+            });
+          }
         }
       }
 
@@ -480,17 +504,6 @@ export class ForeverConversation {
       logger.warn('conversation', '记忆反思失败', error);
       return '';
     }
-  }
-
-  /** 记忆维护：衰减 + 去重 */
-  private async maintenance(): Promise<void> {
-    try {
-      const decayed = await decayMemories(this.characterId, 0.05, 0.1);
-      const deduped = await deduplicateMemories(this.characterId, 0.92);
-      if (decayed > 0 || deduped > 0) {
-        logger.info('conversation', `记忆维护: 衰减${decayed}条, 去重移除${deduped}条`);
-      }
-    } catch { /* 静默 */ }
   }
 }
 
