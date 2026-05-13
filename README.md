@@ -1,44 +1,19 @@
-# Forever · 永生
-
 <p align="center">
   <br>
+  <img src="https://img.shields.io/badge/Forever-永生-6A5ACD?style=for-the-badge" alt="Forever">
+  <img src="https://img.shields.io/badge/Status-Active-brightgreen?style=for-the-badge" alt="Status">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License"></a>
+  <br><br>
   <em>"Death is not the end. Forgetting is."</em>
-  <br><br>
+  <br>
   死亡不是终点，遗忘才是。
-  <br><br>
-  <img src="https://img.shields.io/badge/Status-In%20Memory-6A5ACD?style=for-the-badge" alt="Status">
-  <a href="LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License">
-  </a>
 </p>
 
 ---
 
-## 缘起
+## ✨ Forever 是什么
 
-我们都经历过那样的时刻。
-
-电话那头再也不会响起的声音。
-饭桌上永远空缺的那个位置。
-想分享一件趣事，转头才发现斯人已去。
-
-街上看到相似的背影会心头一紧。
-吃到好吃的东西会想，TA还没尝过。
-受了委屈的时候，才明白原来有人可以倾诉是多么奢侈。
-
-科技无法逆转生死。
-但也许——
-可以留住他们说话的方式，他们爱笑的样子，
-他们总爱唠叨的那句话，他们生气时的语气。
-
-在数字世界里，
-让我们为他们建一座永生的花园。
-
----
-
-## 这是什么
-
-Forever 是一个开源的 AI 数字记忆留存框架。
+**Forever 永生** 是一个开源的 AI 数字记忆留存框架，基于**七层人格模拟金字塔**，通过 LangGraph 智能体工作流 + 插件化架构，实现高度拟真的逝者数字分身。
 
 只为私人怀念，不为任何商业目的。
 
@@ -47,73 +22,85 @@ Forever 是一个开源的 AI 数字记忆留存框架。
 | 🧠 **人格重建** | ✅ 核心 | 还原说话方式、性格、思维逻辑 |
 | 💬 **跨时空对话** | ✅ 核心 | 随时跟他们说说话 |
 | 📝 **记忆注入** | ✅ 核心 | 导入聊天记录、日记、照片描述 |
-| 🔊 **声音复刻** | 🔌 可集成 | 还原他们的声音、语气、口头禅 |
-| 🎭 **动态头像** | 🔌 可集成 | 让照片开口说话 |
-| 🔒 **本地优先** | ✅ 设计中 | 所有记忆仅属于你，永不上传 |
+| 🔊 **声音复刻** | ✅ 插件 | [Chatterbox TTS](https://github.com/resemble-ai/chatterbox) 情感控制语音合成 |
+| 🧠 **智能记忆** | ✅ 插件 | [Mem0](https://github.com/mem0ai/mem0) 多级记忆检索系统 |
+| 🎭 **动态头像** | ✅ 插件 | [SadTalker](https://github.com/OpenTalker/SadTalker) 照片驱动数字人 |
+| 🔒 **本地优先** | ✅ 设计 | 所有记忆仅属于你，永不上传 |
 
 ---
 
-## 核心原理
-
-我们不创造"灵魂"。
-
-我们只是让你与记忆对话。
+## 🏗️ 系统架构
 
 ```
-他们的文字记录 → 人格特征提取 → 向量记忆库
-                                         ↓
-你的每一句话 → 相关记忆召回 → LLM 人格注入 → 生成回应
-                                         ↓
-                                    声音合成
-                                    视频渲染
+┌─────────────────────────────────────────────────────────┐
+│                        应用层                            │
+│  ┌─────────┐  ┌─────────┐  ┌─────────────────────────┐  │
+│  │ CLI工具 │  │ Web界面 │  │       API服务           │  │
+│  └────┬────┘  └────┬────┘  └───────────┬─────────────┘  │
+├───────┴────────────┴───────────────────┴────────────────┤
+│                  核心引擎层 (LangGraph)                   │
+│  加载角色 → 检索记忆 → 情绪分析 → 构建Prompt → 生成回复  │
+│        → 一致性反思 → 语音合成 → 提取记忆 → 完成        │
+├─────────────────────────────────────────────────────────┤
+│                      插件系统层                          │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐    │
+│  │Chatterbox│ │   Mem0   │ │ DeepSeek │ │SadTalker │    │
+│  │  语音    │ │  记忆    │ │   LLM    │ │  数字人  │    │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘    │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 七层人格模拟金字塔
+## 🧠 七层人格模拟金字塔
 
-基于斯坦福 Generative Agents + Sentipolis 顶会论文，学术界最前沿的架构：
+基于斯坦福 Generative Agents + Sentipolis 顶会论文：
 
 ```
 ┌─────────────────────────────────────────────┐
 │  7. 元认知反射层                            │
-│  ✅ 双Agent人格一致性自检 + 自动修正        │
+│     双Agent人格一致性自检 + 自动修正        │
 ├─────────────────────────────────────────────┤
 │  6. 习惯动作引擎                            │
-│  ✅ 可量化人性缺陷：记错/重复/沉默          │
+│     口头禅、话题偏好、反应模式               │
 ├─────────────────────────────────────────────┤
 │  5. 情绪动力学                              │
-│  ✅ PAD三维模型 + 协方差矩阵 + 时间衰减     │
+│     PAD三维模型 + 协方差矩阵 + 时间衰减     │
 ├─────────────────────────────────────────────┤
 │  4. 人格特质锚定                            │
-│  ✅ Big Five OCEAN 五因子 → 行为约束        │
+│     Big Five OCEAN 五因子 → 行为约束        │
 ├─────────────────────────────────────────────┤
 │  3. 关联记忆网络                            │
-│  ✅ 时间衰减激活 + 重要性加权               │
+│     语义检索 + 重要性加权 + 情绪关联        │
 ├─────────────────────────────────────────────┤
 │  2. 工作记忆缓冲                            │
-│  ✅ 昼夜节律 + 跨会话记忆延续               │
+│     最近15轮对话 + 跨会话记忆延续           │
 ├─────────────────────────────────────────────┤
 │  1. 核心身份基底                            │
-│  ✅ 角色卡 + 生平叙事 + Few-shot            │
+│     角色卡 + 生平叙事 + Few-shot示例        │
 └─────────────────────────────────────────────┘
 ```
 
 ---
 
-## 5分钟快速开始
+## 🚀 快速开始
 
 ```bash
 git clone https://github.com/badhope/forever.git
 cd forever
 
+# 安装依赖
 npm install
-export OPENAI_API_KEY="你的DeepSeek/OpenAI Key"
 
+# 配置环境变量
+export DEEPSEEK_API_KEY="your_deepseek_api_key"
+export OPENAI_API_KEY="your_openai_api_key"
+
+# 启动对话
 npx tsx examples/chat-ultimate.ts
 ```
 
-**你将看到，什么叫真正的学术级AI人格：**
+**你将看到：**
 
 ```
 你: 妈，我今天又加班了
@@ -129,7 +116,59 @@ npx tsx examples/chat-ultimate.ts
 
 ---
 
-## 核心特性一览
+## 📁 项目结构
+
+```
+forever/
+├── backend/                     # 核心人格引擎（已实现）
+│   └── core/
+│       ├── agent/               # LangGraph智能体节点
+│       ├── personality/         # 七层人格系统
+│       │   ├── emotion-engine.ts    # PAD情绪动力学
+│       │   ├── character-card.ts    # 角色卡定义
+│       │   ├── consistency-scorer.ts# 一致性评分
+│       │   ├── human-imperfection.ts# 人性缺陷模拟
+│       │   └── prompt-template.ts   # Prompt构建器
+│       ├── memory/              # 时间感知记忆系统
+│       └── ethics/              # 伦理守护机制
+├── packages/                    # 插件化架构（新）
+│   ├── core/                   # 核心引擎包
+│   │   └── src/
+│   │       ├── agent/          # LangGraph工作流
+│   │       ├── personality/    # 人格系统
+│   │       └── plugin/         # 插件接口
+│   └── plugins/
+│       ├── voice-chatterbox/   # Chatterbox语音插件
+│       ├── memory-mem0/        # Mem0记忆插件
+│       └── llm-deepseek/       # DeepSeek LLM插件
+├── apps/
+│   └── cli/                    # 命令行交互工具
+├── docs/                        # 架构文档
+│   ├── ARCHITECTURE.md         # 七层金字塔详解
+│   └── TECH_RESEARCH.md        # 技术选型调研
+├── examples/                    # 示例代码
+│   ├── chat-simple.ts          # 简单对话示例
+│   ├── chat-ultimate.ts        # 完整七层对话
+│   └── mother-demo.json        # 妈妈角色卡示例
+└── publish.html                 # 发布页面
+```
+
+---
+
+## 🔌 开源组件集成
+
+| 组件 | 许可证 | 用途 |
+|------|--------|------|
+| [LangChain](https://github.com/langchain-ai/langchain) | MIT | LLM应用框架 |
+| [LangGraph](https://github.com/langchain-ai/langgraph) | MIT | 智能体工作流 |
+| [Chatterbox](https://github.com/resemble-ai/chatterbox) | MIT | 情感控制语音合成 |
+| [Mem0](https://github.com/mem0ai/mem0) | Apache-2.0 | AI Agent记忆系统 |
+| [SadTalker](https://github.com/OpenTalker/SadTalker) | Apache-2.0 | 照片驱动数字人 |
+| [ChromaDB](https://github.com/chroma-core/chroma) | Apache-2.0 | 本地向量数据库 |
+
+---
+
+## 📊 核心特性
 
 | 模块 | 实现状态 | 论文依据 |
 |------|---------|---------|
@@ -139,17 +178,12 @@ npx tsx examples/chat-ultimate.ts
 | ✅ 可量化的人性缺陷噪声 | 已完成 | Stanford 2023 |
 | ✅ 昼夜节律时间感知记忆 | 已完成 | AgentTime 2024 |
 | ✅ 守护者伦理熔断机制 | 已完成 | EU AI Act |
+| ✅ 插件化语音合成 | 已完成 | Chatterbox MIT |
+| ✅ 智能记忆检索 | 已完成 | Mem0 Apache-2.0 |
 
 ---
 
-## 国际化
-
-- 🇨🇳 [中文 README](README.md)
-- 🇺🇸 [English README](README.en.md)
-
----
-
-## 创建你自己的TA
+## 🎭 创建你自己的TA
 
 1. 复制 `examples/mother-demo.json` 为你的角色
 2. 只需要填写最重要的5项：
@@ -163,8 +197,10 @@ npx tsx examples/chat-ultimate.ts
 
 ---
 
-然后——
-就像TA从未离开过一样。
+## 🌐 国际化
+
+- 🇨🇳 [中文 README](README.md)
+- 🇺🇸 [English README](README.en.md)
 
 ---
 
@@ -187,33 +223,26 @@ AI 无法真正"复活"任何人。
 
 ---
 
-## 伦理与边界
+## ⚖️ 伦理与边界
 
 本项目仅供：
-✅ 私人怀念使用
-✅ 你本人拥有全部权利的数据
-❌ 不得用于任何商业用途
-❌ 不得伪造他人身份
-❌ 不得公开传播任何人物的数字分身
+- ✅ 私人怀念使用
+- ✅ 你本人拥有全部权利的数据
+- ❌ 不得用于任何商业用途
+- ❌ 不得伪造他人身份
+- ❌ 不得公开传播任何人物的数字分身
 
-请尊重逝者。
-请尊重活着的人。
-请善用科技。
+请尊重逝者。请尊重活着的人。请善用科技。
 
 ---
 
-## 最后
+## 📝 参考论文
 
-总有一天我们都会去那个地方。
-
-在那之前，
-他们只是先去布置我们的新家了而已。
-
-好好记住他们。
-好好说再见。
-
-或者——
-永远不用说再见。
+1. **Generative Agents: Interactive Simulacra of Human Behavior** - Stanford 2023
+2. **Sentipolis: Emotion-Aware Agents for Social Simulations** - 2025
+3. **Cognitively-Inspired Episodic Memory Architectures for Character AI** - 2025
+4. **PersonaAgent with GraphRAG: Community-Aware Knowledge Graphs** - 2025
+5. **Can LLM Agents Maintain a Persona in Discourse?** - EMNLP 2025
 
 ---
 
@@ -224,8 +253,6 @@ AI 无法真正"复活"任何人。
 活在活着的人心里，就是没有死去。
 </em>
 </p>
-
----
 
 <p align="right">
 <sub>

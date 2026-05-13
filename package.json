@@ -1,17 +1,20 @@
 {
   "name": "forever-ai",
-  "version": "1.0.0",
-  "description": "7-layer personality simulation pyramid for digital immortality. Based on Stanford Generative Agents + Sentipolis.",
+  "version": "2.0.0",
+  "description": "Forever 永生 - 开源AI数字记忆留存框架。基于七层人格模拟金字塔，通过LangGraph智能体工作流+插件化架构，集成Chatterbox语音合成、Mem0记忆系统、SadTalker数字人，实现高度拟真的逝者数字分身。",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "type": "module",
   "files": [
     "dist",
     "backend/core",
+    "packages/core",
+    "packages/plugins",
+    "apps/cli",
     "examples"
   ],
   "bin": {
-    "forever": "./examples/chat-ultimate.ts"
+    "forever": "./apps/cli/dist/index.js"
   },
   "repository": {
     "type": "git",
@@ -20,8 +23,7 @@
   "homepage": "https://badhope.github.io/forever/publish.html",
   "scripts": {
     "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "build": "npm run build:backend && npm run build:frontend",
+    "build": "npm run build:backend",
     "chat": "tsx examples/chat-ultimate.ts",
     "publish:pages": "gh-pages -d . --src publish.html",
     "publish:npm": "npm publish --access public"
@@ -29,28 +31,38 @@
   "keywords": [
     "ai",
     "agent",
-    "personality",
+    "digital-immortality",
+    "digital-legacy",
+    "grief-therapy",
+    "personality-simulation",
     "generative-agents",
     "character-ai",
-    "digital-immortality",
-    "grief-therapy",
-    "digital-legacy",
+    "langgraph",
+    "chatterbox-tts",
+    "mem0",
+    "sadtalker",
+    "text-to-speech",
+    "voice-cloning",
+    "talking-head",
+    "memory-system",
+    "rag",
     "pad-emotion-model",
-    "ocean-personality"
+    "ocean-personality",
+    "big-five",
+    "emotion-dynamics",
+    "chinese-nlp",
+    "deepseek"
   ],
   "author": "badhope",
   "license": "MIT",
   "dependencies": {
     "@langchain/core": "^0.1.0",
     "@langchain/community": "^0.0.1",
-    "langgraph": "^0.0.38",
-    "@zilliz/milvus2-sdk-node": "^2.3.0",
-    "ioredis": "^5.3.0",
-    "pg": "^8.11.0",
-    "@xenova/transformers": "^2.15.0"
+    "langgraph": "^0.0.38"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "tsx": "^4.0.0"
   }
 }
