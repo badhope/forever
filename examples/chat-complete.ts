@@ -25,7 +25,7 @@ import * as readline from 'readline';
 import { detectLLMConfig, listProviders } from '../backend/core/llm/index';
 import { checkEnvironment } from '../backend/core/bridge/index';
 import { ForeverConversation } from './conversation';
-import type { CharacterCard } from './prompt-builder';
+import type { CharacterCard } from './character-card';
 
 // ============ 主程序 ============
 
@@ -127,11 +127,12 @@ async function main() {
 
         console.log(`\n${character.name}: ${result.response}`);
         const meta = `   [心情: ${result.emotionLabel} | 一致性: ${result.consistencyScore}/10 | 耗时: ${elapsed}ms`;
-        if (result.memoriesUsed > 0) {
-          console.log(`${meta} | 回忆: ${result.memoriesUsed}条]`);
-        } else {
-          console.log(`${meta}]`);
-        }
+        const extras: string[] = [];
+        if (result.memoriesUsed > 0) extras.push(`回忆: ${result.memoriesUsed}条`);
+        if (result.ethicsWarning) extras.push(`⚠️ ${result.ethicsWarning}`);
+        extras.push(`层: ${result.layers.join('+')}`);
+        console.log(`${meta}]`);
+        console.log(`   [${extras.join(' | ')}]`);
         console.log('');
       } catch (error: any) {
         console.error(`❌ 错误: ${error.message}`);
