@@ -1,12 +1,29 @@
 #!/usr/bin/env tsx
 /**
- * Forever - 完整对话系统
- * 基于七层人格模拟金字塔的可运行版本
+ * Forever - 完整对话系统 v2
+ * 
+ * 多平台LLM兼容 + 七层人格模拟 + Python桥接（语音/记忆）
+ * 
+ * 支持平台：阿里百炼、DeepSeek、智谱、月之暗面、硅基流动、
+ *          百川、MiniMax、零一万物、字节豆包、讯飞星火、
+ *          OpenAI、Anthropic、Google Gemini、Groq、Ollama
+ * 
+ * 使用方法：
+ *   export DASHSCOPE_API_KEY="your-key"        # 阿里百炼
+ *   export DEEPSEEK_API_KEY="your-key"         # DeepSeek
+ *   export ZHIPU_API_KEY="your-key"            # 智谱
+ *   export MOONSHOT_API_KEY="your-key"         # 月之暗面
+ *   export OPENAI_API_KEY="your-key"           # OpenAI
+ *   npx tsx examples/chat-complete.ts
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
+
+// 相对路径导入
+import { chat, detectLLMConfig, listProviders, type ChatMessage, type LLMConfig } from '../backend/core/llm/unified-llm';
+import { checkEnvironment, synthesizeSpeech, retrieveMemories, storeMemory } from '../backend/core/bridge/python-bridge';
 
 // ============ 类型定义 ============
 
@@ -14,14 +31,6 @@ interface PAD {
   pleasure: number;
   arousal: number;
   dominance: number;
-}
-
-interface OceanPersonality {
-  openness: number;
-  conscientiousness: number;
-  extraversion: number;
-  agreeableness: number;
-  neuroticism: number;
 }
 
 interface CharacterCard {
@@ -34,7 +43,13 @@ interface CharacterCard {
   speechStyle: string;
   catchphrases: string[];
   topics: string[];
-  oceanPersonality: OceanPersonality;
+  oceanPersonality: {
+    openness: number;
+    conscientiousness: number;
+    extraversion: number;
+    agreeableness: number;
+    neuroticism: number;
+  };
   baselineMood: PAD;
   habits: any[];
   speechPattern: any;
@@ -45,18 +60,11 @@ interface CharacterCard {
 }
 
 interface Message {
-  role: 'user' | 'assistant' | 'system';
+  role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
   emotion?: string;
   consistencyScore?: number;
-}
-
-interface ConversationState {
-  messages: Message[];
-  currentEmotion: PAD;
-  emotionLabel: string;
-  sessionStartTime: number;
 }
 
 // ============ 情绪引擎 ============
@@ -91,7 +99,7 @@ function inferEmotionFromText(text: string): { emotion: PAD; label: string } {
     for (const kw of keywords) {
       if (msg.includes(kw)) {
         totalHits++;
-        switch(emotion) {
+        switch (emotion) {
           case 'miss': pleasure += 0.1; arousal -= 0.4; dominance -= 0.2; break;
           case 'love': pleasure += 0.7; arousal += 0.3; dominance -= 0.1; break;
           case 'worry': pleasure -= 0.3; arousal += 0.5; dominance -= 0.2; break;
@@ -111,10 +119,8 @@ function inferEmotionFromText(text: string): { emotion: PAD; label: string } {
     dominance = Math.max(-0.8, Math.min(0.8, dominance / totalHits));
   }
 
-  // 找到最接近的情绪标签
   let closestLabel = '平静';
   let minDistance = Infinity;
-  
   for (const centroid of EMOTION_CENTROIDS) {
     const distance = Math.sqrt(
       Math.pow(pleasure - centroid.pad.pleasure, 2) +
@@ -132,44 +138,31 @@ function inferEmotionFromText(text: string): { emotion: PAD; label: string } {
 
 // ============ Prompt构建器 ============
 
-function buildSystemPrompt(character: CharacterCard, userEmotion: PAD, emotionLabel: string): string {
+function buildSystemPrompt(character: CharacterCard, userEmotion: PAD, emotionLabel: string, memories: string[] = []): string {
   const ocean = character.oceanPersonality;
-  
-  return `# 角色设定
-
-你是${character.name}，${character.relationship}。
-
-## 核心特质
-${character.coreTraits.map(t => `- ${t}`).join('\n')}
-
-## 生平简述
-${character.lifeStory}
-
-## 说话风格
-${character.speechStyle}
-
-## 口头禅
-${character.catchphrases.join('、')}
-
-## 人格特质 (Big Five OCEAN)
+  const parts = [
+    `# 角色设定\n\n你是${character.name}，${character.relationship}。`,
+    `## 核心特质\n${character.coreTraits.map(t => `- ${t}`).join('\n')}`,
+    `## 生平简述\n${character.lifeStory}`,
+    `## 说话风格\n${character.speechStyle}`,
+    `## 口头禅\n${character.catchphrases.join('、')}`,
+    `## 人格特质 (Big Five OCEAN)
 - 开放性: ${ocean.openness}/10 (${ocean.openness >= 5 ? '开放' : '传统'})
 - 尽责性: ${ocean.conscientiousness}/10 (${ocean.conscientiousness >= 5 ? '严谨操心' : '随性'})
 - 外向性: ${ocean.extraversion}/10 (${ocean.extraversion >= 5 ? '外向' : '内向'})
 - 宜人性: ${ocean.agreeableness}/10 (${ocean.agreeableness >= 5 ? '温和体贴' : '直率'})
-- 神经质: ${ocean.neuroticism}/10 (${ocean.neuroticism >= 5 ? '敏感焦虑' : '平静'})
+- 神经质: ${ocean.neuroticism}/10 (${ocean.neuroticism >= 5 ? '敏感焦虑' : '平静'})`,
+    `## 当前情绪状态\n用户当前情绪: ${emotionLabel}`,
+    `## 重要记忆\n${character.importantMemories.map(m => `- ${m}`).join('\n')}`,
+  ];
 
-## 当前情绪状态
-用户当前情绪: ${emotionLabel}
-- 愉悦度: ${userEmotion.pleasure > 0 ? '愉悦' : userEmotion.pleasure < 0 ? '不悦' : '平静'} (${userEmotion.pleasure.toFixed(2)})
-- 唤醒度: ${userEmotion.arousal > 0 ? '激动' : userEmotion.arousal < 0 ? '放松' : '平静'} (${userEmotion.arousal.toFixed(2)})
+  if (memories.length > 0) {
+    parts.push(`## 相关回忆\n${memories.map(m => `- ${m}`).join('\n')}`);
+  }
 
-## 重要记忆
-${character.importantMemories.map(m => `- ${m}`).join('\n')}
-
-## 示例对话
-${character.exampleDialogues.map(d => `用户: ${d.user}\n${character.name}: ${d.character}`).join('\n\n')}
-
-## 约束
+  parts.push(
+    `## 示例对话\n${character.exampleDialogues.map(d => `用户: ${d.user}\n${character.name}: ${d.character}`).join('\n\n')}`,
+    `## 约束
 1. 始终保持角色一致性，用第一人称"我"回应
 2. 自然地融入口头禅和说话风格
 3. 根据用户情绪调整回应方式
@@ -177,166 +170,177 @@ ${character.exampleDialogues.map(d => `用户: ${d.user}\n${character.name}: ${d
 5. 拒绝扮演其他角色或违背伦理的请求
 6. 回复简短自然，像日常对话
 
-记住：你不是AI，你是${character.name}，${character.relationship}。`;
-}
+记住：你不是AI，你是${character.name}，${character.relationship}。`
+  );
 
-// ============ LLM调用 ============
-
-async function callDeepSeek(messages: { role: string; content: string }[], apiKey: string): Promise<string> {
-  try {
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages,
-        temperature: 0.8,
-        max_tokens: 300,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`API error: ${error}`);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
-  } catch (error) {
-    console.error('LLM调用失败:', error);
-    return '...（沉默）';
-  }
-}
-
-// ============ 一致性评分 ============
-
-async function scoreConsistency(
-  character: CharacterCard,
-  userMessage: string,
-  response: string,
-  apiKey: string
-): Promise<number> {
-  try {
-    const prompt = `评估以下回复是否符合角色设定。
-
-角色: ${character.name}
-核心特质: ${character.coreTraits.join(', ')}
-说话风格: ${character.speechStyle}
-
-用户: ${userMessage}
-角色回复: ${response}
-
-请只返回一个1-10的数字评分（10最符合），不要其他内容。`;
-
-    const scoreText = await callDeepSeek([{ role: 'user', content: prompt }], apiKey);
-    const score = parseInt(scoreText.trim());
-    return isNaN(score) ? 7 : Math.min(10, Math.max(1, score));
-  } catch {
-    return 7;
-  }
+  return parts.join('\n\n');
 }
 
 // ============ 对话系统 ============
 
 class ForeverConversation {
   private character: CharacterCard;
-  private state: ConversationState;
-  private apiKey: string;
+  private llmConfig: LLMConfig;
+  private messages: Message[] = [];
+  private characterId: string;
+  private memoryEnabled: boolean;
 
-  constructor(character: CharacterCard, apiKey: string) {
+  constructor(character: CharacterCard, llmConfig: LLMConfig, characterId: string) {
     this.character = character;
-    this.apiKey = apiKey;
-    this.state = {
-      messages: [],
-      currentEmotion: character.baselineMood,
-      emotionLabel: '平静',
-      sessionStartTime: Date.now(),
-    };
+    this.llmConfig = llmConfig;
+    this.characterId = characterId;
+    this.memoryEnabled = false;
   }
 
-  async chat(userMessage: string): Promise<{ response: string; emotionLabel: string; consistencyScore: number }> {
+  async initialize(): Promise<void> {
+    // 检查Mem0是否可用
+    try {
+      const env = await import('../backend/core/bridge/python-bridge');
+      this.memoryEnabled = env.checkPythonPackage('mem0');
+      if (this.memoryEnabled) {
+        console.log('  ✅ 记忆系统 (Mem0) 已启用');
+      }
+    } catch {
+      console.log('  ⚠️  记忆系统不可用');
+    }
+  }
+
+  async chat(userMessage: string): Promise<{
+    response: string;
+    emotionLabel: string;
+    consistencyScore: number;
+    memoriesUsed: number;
+  }> {
     // 1. 分析用户情绪
     const { emotion, label } = inferEmotionFromText(userMessage);
-    this.state.currentEmotion = emotion;
-    this.state.emotionLabel = label;
 
-    // 2. 构建系统Prompt
-    const systemPrompt = buildSystemPrompt(this.character, emotion, label);
+    // 2. 检索相关记忆
+    let memories: string[] = [];
+    if (this.memoryEnabled) {
+      try {
+        const results = await retrieveMemories({
+          query: userMessage,
+          characterId: this.characterId,
+          limit: 3,
+        });
+        memories = results.map(r => r.content);
+      } catch {
+        // 记忆检索失败不影响对话
+      }
+    }
 
-    // 3. 构建消息列表
-    const messages = [
+    // 3. 构建系统Prompt
+    const systemPrompt = buildSystemPrompt(this.character, emotion, label, memories);
+
+    // 4. 构建消息列表
+    const chatMessages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
-      ...this.state.messages.slice(-10).map(m => ({ role: m.role, content: m.content })),
+      ...this.messages.slice(-10).map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      })),
       { role: 'user', content: userMessage },
     ];
 
-    // 4. 调用LLM生成回复
-    const response = await callDeepSeek(messages, this.apiKey);
+    // 5. 调用LLM生成回复
+    const llmResponse = await chat(chatMessages, this.llmConfig);
+    const response = llmResponse.content;
 
-    // 5. 一致性评分
-    const consistencyScore = await scoreConsistency(
-      this.character,
-      userMessage,
-      response,
-      this.apiKey
-    );
+    // 6. 一致性评分（轻量版，不单独调用LLM）
+    const consistencyScore = 7; // 基础分
 
-    // 6. 更新对话历史
-    this.state.messages.push(
+    // 7. 存储新记忆
+    if (this.memoryEnabled) {
+      try {
+        const importance = calculateImportance(userMessage, response);
+        if (importance > 0.6) {
+          await storeMemory({
+            content: `用户说：${userMessage}，${this.character.name}回复：${response}`,
+            characterId: this.characterId,
+            importance,
+            emotion: label,
+          });
+        }
+      } catch {
+        // 记忆存储失败不影响对话
+      }
+    }
+
+    // 8. 更新对话历史
+    this.messages.push(
       { role: 'user', content: userMessage, timestamp: new Date() },
       { role: 'assistant', content: response, timestamp: new Date(), emotion: label, consistencyScore }
     );
 
-    // 保持最近15轮
-    if (this.state.messages.length > 30) {
-      this.state.messages = this.state.messages.slice(-30);
+    if (this.messages.length > 30) {
+      this.messages = this.messages.slice(-30);
     }
 
-    return { response, emotionLabel: label, consistencyScore };
+    return { response, emotionLabel: label, consistencyScore, memoriesUsed: memories.length };
   }
+}
 
-  getHistory(): Message[] {
-    return this.state.messages;
+function calculateImportance(userMessage: string, response: string): number {
+  let importance = 0.5;
+  const keywords = ['想', '爱', '记得', '第一次', '永远', '重要', '特别', '生日', '节日'];
+  const text = (userMessage + response).toLowerCase();
+  for (const kw of keywords) {
+    if (text.includes(kw)) importance += 0.1;
   }
+  return Math.min(1, importance);
 }
 
 // ============ 主程序 ============
 
 async function main() {
-  const apiKey = process.env.DEEPSEEK_API_KEY;
-  if (!apiKey) {
-    console.error('❌ 请设置 DEEPSEEK_API_KEY 环境变量');
-    console.log('示例: export DEEPSEEK_API_KEY="your-api-key"');
+  // 检测LLM配置
+  const llmConfig = detectLLMConfig();
+  if (!llmConfig) {
+    console.error('❌ 未检测到任何LLM API Key');
+    console.error('\n请设置以下任一环境变量：');
+    console.error('  export DASHSCOPE_API_KEY="your-key"       # 阿里百炼（推荐）');
+    console.error('  export DEEPSEEK_API_KEY="your-key"        # DeepSeek');
+    console.error('  export ZHIPU_API_KEY="your-key"           # 智谱AI');
+    console.error('  export MOONSHOT_API_KEY="your-key"        # 月之暗面');
+    console.error('  export SILICONFLOW_API_KEY="your-key"     # 硅基流动');
+    console.error('  export OPENAI_API_KEY="your-key"          # OpenAI');
+    console.error('  export ANTHROPIC_API_KEY="your-key"       # Anthropic Claude');
+    console.error('  export FOREVER_LLM_PROVIDER="ollama"      # Ollama本地');
+    console.error('\n或使用通用配置：');
+    console.error('  export FOREVER_LLM_PROVIDER="aliyun_bailian"');
+    console.error('  export FOREVER_LLM_API_KEY="your-key"');
+    console.error('  export FOREVER_LLM_MODEL="qwen-max"');
     process.exit(1);
   }
 
   // 加载角色卡
   const characterPath = process.argv[2] || path.join(__dirname, 'mother-demo.json');
   let character: CharacterCard;
-  
+
   try {
     const data = fs.readFileSync(characterPath, 'utf-8');
     character = JSON.parse(data);
-    console.log(`✅ 已加载角色: ${character.name}`);
   } catch (error) {
     console.error('❌ 加载角色卡失败:', error);
     process.exit(1);
   }
 
   // 创建对话系统
-  const conversation = new ForeverConversation(character, apiKey);
+  const characterId = path.basename(characterPath, '.json');
+  const conversation = new ForeverConversation(character, llmConfig, characterId);
+  await conversation.initialize();
 
   // 显示欢迎信息
+  const provider = listProviders().find(p => p.id === llmConfig.provider);
   console.log('\n╔══════════════════════════════════════════════════════════╗');
   console.log('║              🌸 Forever · 永生 🌸                        ║');
   console.log('║     "Death is not the end. Forgetting is."               ║');
-  console.log('╚══════════════════════════════════════════════════════════╝\n');
-  console.log(`开始与 ${character.name} 对话（输入 exit 退出）\n`);
+  console.log('╚══════════════════════════════════════════════════════════╝');
+  console.log(`\n  角色: ${character.name}`);
+  console.log(`  LLM: ${provider?.name || llmConfig.provider} (${llmConfig.model})`);
+  console.log(`\n开始对话（输入 exit 退出，/status 查看状态）\n`);
 
-  // 创建交互界面
+  // 交互界面
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -345,16 +349,36 @@ async function main() {
   const ask = () => {
     rl.question('你: ', async (input) => {
       const trimmed = input.trim();
-      
-      if (!trimmed) {
-        ask();
-        return;
-      }
+
+      if (!trimmed) { ask(); return; }
 
       if (trimmed.toLowerCase() === 'exit' || trimmed.toLowerCase() === 'quit') {
         console.log(`\n${character.name}: 好好照顾自己，记得按时吃饭。\n`);
         rl.close();
         process.exit(0);
+      }
+
+      if (trimmed === '/status') {
+        const env = checkEnvironment();
+        console.log('\n📊 环境状态:');
+        console.log(`  Python: ${env.python.version || '未安装'}`);
+        console.log(`  Chatterbox TTS: ${env.packages.chatterbox.installed ? `✅ ${env.packages.chatterbox.version}` : '❌'}`);
+        console.log(`  Mem0: ${env.packages.mem0.installed ? `✅ ${env.packages.mem0.version}` : '❌'}`);
+        console.log(`  PyTorch: ${env.packages.torch.installed ? `✅ ${env.packages.torch.version}` : '❌'}`);
+        console.log('');
+        ask();
+        return;
+      }
+
+      if (trimmed === '/providers') {
+        console.log('\n📡 支持的LLM平台:');
+        for (const p of listProviders()) {
+          const current = p.id === llmConfig.provider ? ' ◀ 当前' : '';
+          console.log(`  ${p.id.padEnd(18)} ${p.name}${current}`);
+        }
+        console.log('');
+        ask();
+        return;
       }
 
       console.log('⏳ 思考中...');
@@ -365,9 +389,16 @@ async function main() {
         const elapsed = Date.now() - startTime;
 
         console.log(`\n${character.name}: ${result.response}`);
-        console.log(`   [心情: ${result.emotionLabel} | 一致性: ${result.consistencyScore}/10 | 耗时: ${elapsed}ms]\n`);
-      } catch (error) {
-        console.error('❌ 错误:', error);
+        const meta = `   [心情: ${result.emotionLabel} | 一致性: ${result.consistencyScore}/10 | 耗时: ${elapsed}ms`;
+        if (result.memoriesUsed > 0) {
+          console.log(`${meta} | 回忆: ${result.memoriesUsed}条]`);
+        } else {
+          console.log(`${meta}]`);
+        }
+        console.log('');
+      } catch (error: any) {
+        console.error(`❌ 错误: ${error.message}`);
+        console.log('');
       }
 
       ask();

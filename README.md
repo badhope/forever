@@ -92,13 +92,41 @@ cd forever
 # 安装依赖
 npm install
 
-# 配置环境变量
-export DEEPSEEK_API_KEY="your_deepseek_api_key"
-export OPENAI_API_KEY="your_openai_api_key"
+# 配置LLM（任选一个平台即可）
+export DASHSCOPE_API_KEY="your_key"        # 阿里百炼（推荐，免费额度大）
+# export DEEPSEEK_API_KEY="your_key"       # DeepSeek
+# export ZHIPU_API_KEY="your_key"          # 智谱AI
+# export MOONSHOT_API_KEY="your_key"       # 月之暗面
+# export SILICONFLOW_API_KEY="your_key"    # 硅基流动
+# export OPENAI_API_KEY="your_key"         # OpenAI
+# export ANTHROPIC_API_KEY="your-key"      # Anthropic Claude
 
 # 启动对话
-npx tsx examples/chat-ultimate.ts
+npx tsx examples/chat-complete.ts
 ```
+
+### 📡 支持的LLM平台（16个）
+
+| 平台 | 环境变量 | 默认模型 |
+|------|----------|----------|
+| 🇨🇳 **阿里百炼** | `DASHSCOPE_API_KEY` | qwen-plus |
+| 🇨🇳 **智谱AI** | `ZHIPU_API_KEY` | glm-4-flash |
+| 🇨🇳 **月之暗面** | `MOONSHOT_API_KEY` | moonshot-v1-8k |
+| 🇨🇳 **硅基流动** | `SILICONFLOW_API_KEY` | Qwen2.5-7B |
+| 🇨🇳 **DeepSeek** | `DEEPSEEK_API_KEY` | deepseek-chat |
+| 🇨🇳 **百川智能** | `BAICHUAN_API_KEY` | Baichuan4 |
+| 🇨🇳 **MiniMax** | `MINIMAX_API_KEY` | MiniMax-Text-01 |
+| 🇨🇳 **零一万物** | `YI_API_KEY` | yi-lightning |
+| 🇨🇳 **字节豆包** | `DOUBAO_API_KEY` | doubao-pro-32k |
+| 🇨🇳 **讯飞星火** | `SPARK_API_KEY` | generalv3.5 |
+| 🇨🇳 **阶跃星辰** | `STEPFUN_API_KEY` | step-1-8k |
+| 🌍 **OpenAI** | `OPENAI_API_KEY` | gpt-4o-mini |
+| 🌍 **Anthropic** | `ANTHROPIC_API_KEY` | claude-sonnet-4 |
+| 🌍 **Google Gemini** | `GOOGLE_API_KEY` | gemini-2.0-flash |
+| 🌍 **Groq** | `GROQ_API_KEY` | llama-3.3-70b |
+| 🏠 **Ollama本地** | 无需Key | qwen2.5:7b |
+
+> 所有OpenAI API兼容平台均可通过 `FOREVER_LLM_PROVIDER` + `FOREVER_LLM_API_KEY` + `FOREVER_LLM_BASE_URL` 自定义接入。
 
 **你将看到：**
 
