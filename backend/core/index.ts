@@ -46,3 +46,47 @@ export { ForeverError, LLMError, MemoryError, TTSError, ConfigError, withRetry, 
 // 多模态管线
 export { runMultimodalPipeline } from './pipeline';
 export type { PipelineOptions, PipelineResult } from './pipeline';
+
+// 算法库
+export {
+  cosineSimilarity, euclideanDistance, manhattanDistance,
+  padDistance, interpolatePAD, padToEmotion, EMOTION_TO_PAD,
+  calculateImportance,
+  forgettingCurve, calculateReviewInterval,
+  binarySearch, quickSelect, topK,
+  levenshteinDistance, stringSimilarity, calculateTfIdf,
+  weightedRandom, softmax, temperatureSampling,
+  movingAverage, exponentialMovingAverage,
+  kMeans,
+} from './algorithms/index';
+export type { PADEmotion, ImportanceFactors, ForgettingCurveParams } from './algorithms/index';
+
+// 数学模型
+export {
+  DEFAULT_OCEAN,
+  calculatePersonalityInfluence, oceanSimilarity, interpolateOcean,
+  EmotionalStateMachine, emotionalContagion,
+  MemoryNetwork,
+  AttentionManager,
+  calculateUtility, selectOptimalOption,
+  BayesianBelief,
+} from './math/index';
+export type { OceanTraits, PersonalityInfluence, MemoryNode, AttentionConfig, DecisionOption } from './math/index';
+
+// 函数式编程工具
+export {
+  identity, constant, compose, pipe, curry, partial,
+  map, filter, reduce, flatMap, groupBy, sortBy, unique, uniqueBy, chunk, take, skip,
+  memoize, memoizeWithTTL, debounce, throttle, withRetry, withTimeout,
+  LazySequence, Maybe, Either,
+} from './utils/fp';
+
+// 性能优化工具
+export {
+  LRUCache, TTLCache, MultiLevelCache,
+  Batcher, DeduplicatedBatcher,
+  Lazy, LazyAsync,
+  ObjectPool,
+  TokenBucket, ConcurrencyController,
+  PerformanceTimer, withPerformance, withPerformanceAsync,
+} from './utils/performance';

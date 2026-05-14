@@ -2,8 +2,13 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { charactersRouter } from './routes/characters.js';
 import { sessionsRouter } from './routes/sessions.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -54,8 +59,19 @@ app.get('/health', (req: Request, res: Response) => {
 app.use('/api/characters', charactersRouter);
 app.use('/api/sessions', sessionsRouter);
 
-// 404 handler
-app.use((req: Request, res: Response) => {
+// Serve static files (Web UI)
+const publicPath = path.join(__dirname, '..', 'public');
+app.use(express.static(publicPath));
+
+// SPA fallback - serve index.html for all non-API routes
+app.get('*', (req: Request, res: Response) => {
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(publicPath, 'index.html'));
+  }
+});
+
+// 404 handler (API only)
+app.use('/api', (req: Request, res: Response) => {
   res.status(404).json({ error: 'Not found' });
 });
 
