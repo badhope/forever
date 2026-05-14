@@ -123,7 +123,7 @@ export class JSONLoader extends BaseDocumentLoader {
           index,
         };
 
-        for (const key of this.config.metadataKeys) {
+        for (const key of this.config.metadataKeys || []) {
           if (key in item) {
             metadata[key] = item[key];
           }
@@ -150,7 +150,7 @@ export class JSONLoader extends BaseDocumentLoader {
       source: this.filePath,
     };
 
-    for (const key of this.config.metadataKeys) {
+    for (const key of this.config.metadataKeys || []) {
       if (key in obj) {
         metadata[key] = obj[key];
       }

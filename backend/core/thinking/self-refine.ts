@@ -16,7 +16,7 @@
  * ```
  */
 
-import type { LLMConfig } from '../../llm/types';
+import type { LLMConfig } from '../llm/types.js';
 import type {
   ThinkingResult,
   ThinkingStrategy,
@@ -146,11 +146,11 @@ export class SelfRefineStrategy implements ThinkingStrategy {
       `当前输出：${output}`,
       '',
       '请按以下 JSON 格式输出：',
-      '{',
-      '  "feedback": "详细的评估反馈",
+      '\\{',
+      '  "feedback": "详细的评估反馈",',
       '  "score": 0.0-1.0,',
       '  "areasForImprovement": ["需要改进的方面1", "需要改进的方面2"]',
-      '}',
+      '\\}',
     ].join('\n');
 
     const response = await this.callLLM(feedbackPrompt);

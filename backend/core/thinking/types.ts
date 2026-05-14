@@ -5,7 +5,7 @@
  * 定义所有思考策略共用的接口、配置和结果类型。
  */
 
-import type { LLMConfig } from '../../llm/types';
+import type { LLMConfig } from '../llm/types.js';
 
 /** 思考结果 */
 export interface ThinkingResult {

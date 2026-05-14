@@ -41,6 +41,9 @@ if (!llmConfig) {
   process.exit(1);
 }
 
+// 从这一点开始，llmConfig 保证不为 null
+const config = llmConfig;
+
 const character = {
   ...motherCard,
   id: 'demo_mother',
@@ -50,10 +53,10 @@ const character = {
 
 const emotionEngine = new EmotionDynamicsEngine(character.baselineMood);
 const consistencyScorer = new ConsistencyScorer(
-  llmConfig.apiKey,
-  llmConfig.provider,
-  llmConfig.model,
-  llmConfig.baseUrl
+  config.apiKey,
+  config.provider,
+  config.model,
+  config.baseUrl
 );
 const imperfectionLayer = new HumanImperfectionLayer();
 const memorySystem = new TimeAwareMemorySystem();
@@ -75,7 +78,7 @@ console.log('  ✓ 双Agent人格一致性自检闭环');
 console.log('  ✓ 可量化人性缺陷噪声层');
 console.log('  ✓ 时间感知记忆 + 昼夜节律');
 console.log('  ✓ 守护者伦理熔断机制');
-console.log(`\n  LLM平台: ${llmConfig.provider} (${llmConfig.model || '默认模型'})`);
+console.log(`\n  LLM平台: ${config.provider} (${config.model || '默认模型'})`);
 console.log('\n  正在与 %s 对话中...', character.name);
 console.log('\n  输入 .exit 退出');
 console.log('\n─────────────────────────────────────────────────\n');
@@ -118,10 +121,10 @@ async function chatWithCharacter(userMessage: string): Promise<{
   ];
 
   const response = await chat(allMessages, {
-    provider: llmConfig.provider,
-    apiKey: llmConfig.apiKey,
-    model: llmConfig.model,
-    baseUrl: llmConfig.baseUrl,
+    provider: config.provider,
+    apiKey: config.apiKey,
+    model: config.model,
+    baseUrl: config.baseUrl,
     temperature: 0.75,
     maxTokens: 250,
   });

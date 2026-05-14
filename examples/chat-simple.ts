@@ -28,6 +28,9 @@ if (!llmConfig) {
   process.exit(1);
 }
 
+// 从这一点开始，llmConfig 保证不为 null
+const config = llmConfig;
+
 const character = {
   ...motherCard,
   id: 'demo_mother',
@@ -59,10 +62,10 @@ async function chatWithCharacter(userMessage: string): Promise<string> {
   ];
 
   const response = await chat(allMessages, {
-    provider: llmConfig.provider,
-    apiKey: llmConfig.apiKey,
-    model: llmConfig.model,
-    baseUrl: llmConfig.baseUrl,
+    provider: config.provider,
+    apiKey: config.apiKey,
+    model: config.model,
+    baseUrl: config.baseUrl,
     temperature: 0.7,
     maxTokens: 200,
   });
@@ -86,7 +89,7 @@ console.log('\n  死亡不是终点，遗忘才是。');
 console.log('\n  ──────────────────────────────────────────────');
 console.log(`\n  正在与 ${character.name} 对话中...`);
 console.log(`  当前心情: ${emotionEngine.getEmotionLabel()}`);
-console.log(`  LLM平台: ${llmConfig.provider} (${llmConfig.model || '默认模型'})`);
+console.log(`  LLM平台: ${config.provider} (${config.model || '默认模型'})`);
 console.log('\n  输入 .exit 退出');
 console.log('\n─────────────────────────────────────────────────\n');
 

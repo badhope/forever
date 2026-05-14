@@ -13,7 +13,7 @@
  * ```
  */
 
-import type { LLMConfig } from '../../llm/types';
+import type { LLMConfig } from '../llm/types.js';
 import type {
   ThinkingResult,
   ThinkingStrategy,

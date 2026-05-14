@@ -25,7 +25,7 @@ import * as readline from 'readline';
 // 相对路径导入
 import { detectLLMConfig, listProviders } from '../backend/core/llm/index';
 import { checkEnvironment, getMemoryCount, checkPythonPackage } from '../backend/core/bridge/index';
-import { ForeverConversation } from './conversation-core';
+import { ForeverConversationCore } from './conversation-core';
 import type { CharacterCard } from './character-card';
 import { logger } from '../backend/core/logger';
 import { loadConfig } from '../backend/core/config';
@@ -64,6 +64,9 @@ async function main() {
     process.exit(1);
   }
 
+  // 从这一点开始，llmConfig 保证不为 null
+  const llm = llmConfig;
+
   // 加载角色卡
   const characterPath = process.argv[2] || path.join(__dirname, 'mother-demo.json');
   let character: CharacterCard;
@@ -79,7 +82,7 @@ async function main() {
   characterId = path.basename(characterPath, '.json');
 
   // 创建对话系统
-  const conversation = new ForeverConversation(character, llmConfig, characterId);
+  const conversation = new ForeverConversationCore(character, llm, characterId);
   await conversation.initialize();
 
   // 生成会话ID
@@ -96,13 +99,13 @@ async function main() {
   }
 
   // 显示欢迎信息
-  const provider = listProviders().find(p => p.id === llmConfig.provider);
+  const provider = listProviders().find(p => p.id === llm.provider);
   console.log('\n╔══════════════════════════════════════════════════════════╗');
   console.log('║              🌸 Forever · 永生 🌸                        ║');
   console.log('║     "Death is not the end. Forgetting is."               ║');
   console.log('╚══════════════════════════════════════════════════════════╝');
   console.log(`\n  角色: ${character.name}`);
-  console.log(`  LLM: ${provider?.name || llmConfig.provider} (${llmConfig.model})`);
+  console.log(`  LLM: ${provider?.name || llm.provider} (${llm.model})`);
   console.log(`  会话ID: ${sessionId}`);
   if (config.tts.enabled) {
     console.log(`  TTS: ${config.tts.provider}`);
@@ -145,8 +148,8 @@ async function main() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         metadata: {
-          provider: llmConfig.provider,
-          model: llmConfig.model,
+          provider: llm.provider,
+          model: llm.model,
         },
       });
       eventBus.emit('session:saved', { sessionId });
@@ -201,7 +204,7 @@ async function main() {
       if (trimmed === '/providers') {
         console.log('\n📡 支持的LLM平台:');
         for (const p of listProviders()) {
-          const current = p.id === llmConfig.provider ? ' ◀ 当前' : '';
+          const current = p.id === llm.provider ? ' ◀ 当前' : '';
           console.log(`  ${p.id.padEnd(18)} ${p.name}${current}`);
         }
         console.log('');

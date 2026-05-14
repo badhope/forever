@@ -231,7 +231,7 @@ export function createChromaDBHealthCheck(
       clearTimeout(timeoutId);
 
       if (response.ok) {
-        const data = await response.json().catch(() => ({}));
+        const data = await response.json().catch(() => ({})) as { nanosecond_heartbeat?: number };
         return {
           status: 'healthy' as const,
           message: 'ChromaDB is accessible',

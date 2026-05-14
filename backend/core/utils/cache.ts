@@ -64,7 +64,9 @@ export class LRUCache<K, V> {
     } else if (this.cache.size >= this.maxSize) {
       // 删除最旧的条目（Map 迭代顺序中第一个即为最久未访问）
       const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
     }
     this.cache.set(key, value);
   }

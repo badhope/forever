@@ -79,12 +79,12 @@ export function curry<T, U, V>(fn: (a: T, b: U) => V): (a: T) => (b: U) => V {
  * @template T - 原函数参数类型元组
  * @template U - 返回值类型
  * @param {(...args: T) => U} fn - 原函数
- * @param {...Partial<T>} presetArgs - 预设的参数
+ * @param {...any[]} presetArgs - 预设的参数
  * @returns {(...args: any[]) => U} 部分应用后的函数
  */
 export function partial<T extends any[], U>(
   fn: (...args: T) => U,
-  ...presetArgs: Partial<T>
+  ...presetArgs: any[]
 ): (...args: any[]) => U {
-  return (...laterArgs: any[]) => fn(...(presetArgs as T), ...laterArgs);
+  return (...laterArgs: any[]) => (fn as any)(...presetArgs, ...laterArgs);
 }

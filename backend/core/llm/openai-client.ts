@@ -37,7 +37,15 @@ export async function chatOpenAICompatible(
     throw new Error(`[${config.provider}] API错误: ${response.status} - ${error}`);
   }
 
-  const data = await response.json();
+  const data = await response.json() as {
+    choices: Array<{ message: { content: string } }>;
+    model?: string;
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      total_tokens?: number;
+    };
+  };
   return {
     content: data.choices[0].message.content,
     model: data.model || model,

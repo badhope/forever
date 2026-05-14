@@ -72,7 +72,7 @@ export const FileReadTool: ToolDefinition = {
       throw new Error(`文件过大 (${stat.size} bytes)，最大支持 ${MAX_SIZE} bytes`);
     }
 
-    const content = fs.readFileSync(filePath, encoding);
+    const content = fs.readFileSync(filePath, encoding as BufferEncoding);
 
     if (maxLines > 0) {
       const lines = content.split('\n');

@@ -25,9 +25,12 @@ export { HumanImperfectionLayer } from './personality/human-imperfection';
 export { buildSystemPrompt, buildReflectionPrompt, buildEmotionPrompt } from './personality/prompt-template';
 export { buildPersonalityInjectionPrompt, buildConsistencyScoringPrompt } from './personality/personality-filter';
 export type {
-  CharacterCard, OceanPersonality, PAD, EmotionLabel,
-  Habit, SpeechPattern, ReactionTemplate,
+  CharacterCard,
 } from './personality/character-card';
+export type {
+  OceanPersonality, PAD, EmotionLabel,
+  Habit, SpeechPattern, ReactionTemplate,
+} from './personality/personality-types';
 export type { OceanPersonality as OceanPersonalityType } from './personality/personality-types';
 
 // 伦理系统
@@ -77,7 +80,7 @@ export type { OceanTraits, PersonalityInfluence, MemoryNode, AttentionConfig, De
 export {
   identity, constant, compose, pipe, curry, partial,
   map, filter, reduce, flatMap, groupBy, sortBy, unique, uniqueBy, chunk, take, skip,
-  memoize, memoizeWithTTL, debounce, throttle, withRetry, withTimeout,
+  memoize, memoizeWithTTL, debounce, throttle, withTimeout,
   LazySequence, Maybe, Either,
 } from './utils/fp';
 
@@ -93,7 +96,7 @@ export {
 
 // 检查点持久化
 export { MemoryCheckpointer, FileCheckpointer, CheckpointManager } from './checkpoint/index';
-export type { Checkpoint, CheckpointFilter } from './checkpoint/index';
+export type { Checkpoint, CheckpointListOptions as CheckpointFilter } from './checkpoint/index';
 
 // 人工介入机制
 export { HumanInTheLoopManager } from './human-in-the-loop/index';
@@ -117,7 +120,7 @@ export {
   CommaSeparatedListOutputParser, PydanticOutputParser,
   OutputFixingParser, RetryWithErrorOutputParser,
 } from './parsers/index';
-export type { BaseOutputParser, FieldDefinition, ParseResult } from './parsers/index';
+export type { BaseOutputParser, StructuredField as FieldDefinition, ParseResult } from './parsers/index';
 
 // 回调与追踪系统
 export { CallbackManager, Tracer, ConsoleCallbackHandler, FileCallbackHandler } from './callbacks/index';

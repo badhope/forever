@@ -1,8 +1,8 @@
 import { MemoryUnit } from './memory-types';
 
 export interface TimeAwareMemory extends MemoryUnit {
-  createdAt: number;
-  lastAccessedAt: number;
+  createdAt: Date;
+  lastAccessedAt: Date;
   accessCount: number;
   importance: number;
   emotionalWeight: number;
@@ -43,7 +43,7 @@ export class TimeAwareMemorySystem {
 
   /** 添加一条记忆，附带重要性和情感权重 */
   addMemory(memory: MemoryUnit, importance: number = 0.5, emotionalWeight: number = 0): void {
-    const now = Date.now();
+    const now = new Date();
     this.memories.push({
       ...memory,
       createdAt: now,
@@ -55,7 +55,7 @@ export class TimeAwareMemorySystem {
   }
 
   getRecencyWeight(memory: TimeAwareMemory): number {
-    const ageHours = (Date.now() - memory.createdAt) / 3600000;
+    const ageHours = (Date.now() - memory.createdAt.getTime()) / 3600000;
     return Math.exp(-ageHours * Math.LN2 / this.decayHalfLifeHours);
   }
 
@@ -68,7 +68,7 @@ export class TimeAwareMemorySystem {
   /** 按激活分数检索最相关的记忆 */
   retrieveRelevantMemories(query: string, limit: number = 5): MemoryUnit[] {
     for (const m of this.memories) {
-      m.lastAccessedAt = Date.now();
+      m.lastAccessedAt = new Date();
       m.accessCount++;
     }
 

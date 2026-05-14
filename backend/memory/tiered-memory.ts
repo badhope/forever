@@ -58,7 +58,7 @@ export interface MemorySearchResult {
 // ============ 分层记忆管理器（主入口） ============
 
 export class TieredMemoryManager {
-  private characterId: string;
+  private _characterId: string;
   private llmConfig: LLMConfig;
   private dataDir: string;
 
@@ -68,8 +68,13 @@ export class TieredMemoryManager {
   private archivalManager: ArchivalMemoryManager;
   private toolsExecutor: MemoryToolsExecutor;
 
+  /** 获取角色ID */
+  get characterId(): string {
+    return this._characterId;
+  }
+
   constructor(characterId: string, llmConfig: LLMConfig, dataDir?: string) {
-    this.characterId = characterId;
+    this._characterId = characterId;
     this.llmConfig = llmConfig;
     this.dataDir = dataDir || process.env.FOREVER_DATA_DIR || '/tmp';
 
@@ -107,7 +112,7 @@ export class TieredMemoryManager {
     lifeStory?: string;
     importantMemories?: string[];
     familyRelations?: Array<{ name: string; relation: string; description: string }>;
-    habits?: Array<{ name: string; description: string; frequency?: string }>;
+    habits?: Array<{ name?: string; description?: string; frequency?: string; content?: string; type?: string }>;
   }): void {
     this.coreManager.initializeFromCharacterCard(character);
   }
@@ -377,8 +382,8 @@ export class TieredMemoryManager {
     recallCount: number;
     archivalCount: number;
   }> {
-    const recallCollectionId = `${this.characterId}_recall`;
-    const archivalCollectionId = `${this.characterId}_archival`;
+    const recallCollectionId = `${this._characterId}_recall`;
+    const archivalCollectionId = `${this._characterId}_archival`;
 
     let recallCount = 0;
     let archivalCount = 0;

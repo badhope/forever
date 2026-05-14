@@ -21,6 +21,19 @@ export interface CoreMemoryBlock {
   lastUpdated: string;
 }
 
+/** 记忆搜索结果类型 */
+export interface MemorySearchResult {
+  content: string;
+  score: number;
+  source: 'archival' | 'recall';
+  metadata: {
+    id: string;
+    importance: number;
+    emotion: string;
+    tags: string[];
+  };
+}
+
 // ============ 分类标签映射 ============
 
 export const CATEGORY_LABELS: Record<CoreMemoryBlock['category'], string> = {
@@ -68,7 +81,7 @@ export class CoreMemoryManager {
     lifeStory?: string;
     importantMemories?: string[];
     familyRelations?: Array<{ name: string; relation: string; description: string }>;
-    habits?: Array<{ name: string; description: string; frequency?: string }>;
+    habits?: Array<{ name?: string; description?: string; frequency?: string; content?: string; type?: string }>;
   }): void {
     const now = new Date().toISOString();
 
@@ -126,7 +139,15 @@ export class CoreMemoryManager {
     // ---- routine 块 ----
     if (character.habits?.length) {
       const routineContent = character.habits
-        .map(h => `${h.name}${h.description ? `：${h.description}` : ''}${h.frequency ? `（${h.frequency}）` : ''}`)
+        .map(h => {
+          // 支持两种 habits 格式：
+          // 1. 旧格式: { name, description, frequency }
+          // 2. 新格式 (Habit 类型): { content, type }
+          const name = h.name || h.content || '';
+          const desc = h.description || (h.type ? `[${h.type}]` : '');
+          const freq = h.frequency || '';
+          return `${name}${desc ? `：${desc}` : ''}${freq ? `（${freq}）` : ''}`;
+        })
         .join('；');
 
       this.coreMemory.set('routine', {

@@ -31,7 +31,7 @@ export interface SessionSummary {
   updatedAt: string;
 }
 
-class SessionStore {
+export class SessionStore {
   private sessionsDir: string;
 
   constructor(dataDir?: string) {

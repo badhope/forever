@@ -44,7 +44,14 @@ export async function chatAnthropic(
     throw new Error(`[Anthropic] API错误: ${response.status} - ${error}`);
   }
 
-  const data = await response.json();
+  const data = await response.json() as {
+    content: Array<{ text: string }>;
+    model?: string;
+    usage?: {
+      input_tokens?: number;
+      output_tokens?: number;
+    };
+  };
   return {
     content: data.content[0].text,
     model: data.model || model,

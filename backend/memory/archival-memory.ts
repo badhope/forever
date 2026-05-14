@@ -48,8 +48,8 @@ export class ArchivalMemoryManager {
         metadata: {
           id: m.id,
           importance: m.importance,
-          emotion: m.emotion,
-          tags: m.tags,
+          emotion: m.emotion ?? '',
+          tags: m.tags ?? [],
         },
       }));
     } catch (error) {

@@ -36,6 +36,7 @@ export class CSVLoader extends BaseDocumentLoader {
    */
   constructor(filePath: string, config: CSVLoaderConfig = {}) {
     super(filePath);
+    this.filePath = filePath;
     this.config = {
       separator: config.separator || ',',
       contentColumn: config.contentColumn || '',

@@ -91,10 +91,10 @@ function buildOceanBehaviorConstraints(ocean: CharacterCard['oceanPersonality'])
 function buildHabitInjection(habits: CharacterCard['habits'], userMessage: string): string {
   if (!habits || habits.length === 0) return '';
   const triggered = habits.filter(h =>
-    userMessage.includes(h.trigger) && Math.random() < (h.probability || 0.5)
+    h.triggers?.some(trigger => userMessage.includes(trigger)) && Math.random() < (h.probability || 0.5)
   );
   if (triggered.length === 0) return '';
-  return `\n【习惯触发】\n${triggered.map(h => `- 因为对方提到了"${h.trigger}"，你${h.action}`).join('\n')}`;
+  return `\n【习惯触发】\n${triggered.map(h => `- 因为对方提到了相关话题，你${h.content}`).join('\n')}`;
 }
 
 // ============ 记忆注入 (Layer 3) ============
