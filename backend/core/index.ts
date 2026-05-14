@@ -90,3 +90,57 @@ export {
   TokenBucket, ConcurrencyController,
   PerformanceTimer, withPerformance, withPerformanceAsync,
 } from './utils/performance';
+
+// 检查点持久化
+export { MemoryCheckpointer, FileCheckpointer, CheckpointManager } from './checkpoint/index';
+export type { Checkpoint, CheckpointFilter } from './checkpoint/index';
+
+// 人工介入机制
+export { HumanInTheLoopManager } from './human-in-the-loop/index';
+export type { HumanIntervention, InterventionPolicy, InterventionPolicyRule } from './human-in-the-loop/index';
+
+// 任务规划器
+export { TaskPlanner } from './planner/index';
+export type { Task, Plan, PlanProgress, PriorityStrategy } from './planner/index';
+
+// 系统化工具定义
+export { ToolRegistry, ToolExecutor, createDefaultToolRegistry } from './tools/index';
+export type { ToolDefinition, ToolResult } from './tools/index';
+
+// 向量存储抽象层
+export { InMemoryVectorStore } from './vector-store/index';
+export type { Embedding, VectorStoreConfig, MetadataFilter, BaseVectorStore } from './vector-store/index';
+
+// 输出解析器
+export {
+  StructuredOutputParser, ListOutputParser, EnumOutputParser,
+  CommaSeparatedListOutputParser, PydanticOutputParser,
+  OutputFixingParser, RetryWithErrorOutputParser,
+} from './parsers/index';
+export type { BaseOutputParser, FieldDefinition, ParseResult } from './parsers/index';
+
+// 回调与追踪系统
+export { CallbackManager, Tracer, ConsoleCallbackHandler, FileCallbackHandler } from './callbacks/index';
+export type { CallbackEvent, BaseCallbackHandler, TraceSpan } from './callbacks/index';
+
+// 文档加载器与文本分割器
+export {
+  TextLoader, JSONLoader, MarkdownLoader, CSVLoader,
+  RecursiveCharacterTextSplitter, TokenTextSplitter, MarkdownTextSplitter,
+} from './document-loaders/index';
+export type { Document, BaseDocumentLoader, BaseTextSplitter } from './document-loaders/index';
+
+// 多智能体协作
+export {
+  AgentOrchestrator, AgentMessageBus,
+  createResearchTeam, createWritingTeam, createCodingTeam,
+} from './agents/index';
+export type { AgentId, AgentConfig, AgentMessage, AgentState, BaseAgent, AgentRole } from './agents/index';
+
+// AI 思考能力
+export {
+  ThinkingManager,
+  ChainOfThoughtStrategy, ReActStrategy,
+  SelfReflectionStrategy, SelfRefineStrategy, TreeOfThoughtStrategy,
+} from './thinking/index';
+export type { ThinkingStrategy, ThinkingResult } from './thinking/index';
