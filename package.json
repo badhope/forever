@@ -7,7 +7,10 @@
     "type": "git",
     "url": "https://github.com/badhope/forever.git"
   },
-  "homepage": "https://badhope.github.io/forever/publish.html",
+  "homepage": "https://badhope.github.io/forever",
+  "bugs": {
+    "url": "https://github.com/badhope/forever/issues"
+  },
   "scripts": {
     "chat": "tsx examples/chat-complete.ts",
     "chat:simple": "tsx examples/chat-simple.ts",
@@ -26,6 +29,7 @@
     "generative-agents",
     "character-ai",
     "langgraph",
+    "langchain",
     "chatterbox-tts",
     "mem0",
     "sadtalker",
@@ -34,15 +38,51 @@
     "talking-head",
     "memory-system",
     "rag",
+    "retrieval-augmented-generation",
     "pad-emotion-model",
     "ocean-personality",
     "big-five",
     "emotion-dynamics",
     "chinese-nlp",
-    "deepseek"
+    "deepseek",
+    "memgpt",
+    "letta",
+    "multi-agent",
+    "chain-of-thought",
+    "tree-of-thought",
+    "self-reflection",
+    "react-agent",
+    "checkpoint",
+    "human-in-the-loop",
+    "task-planner",
+    "vector-store",
+    "embeddings",
+    "typescript",
+    "nodejs",
+    "openai-compatible",
+    "reminiscence",
+    "memorial",
+    "therapy",
+    "emotional-ai",
+    "social-agent",
+    "cognitive-architecture",
+    "seven-layer-personality"
   ],
-  "author": "badhope",
+  "author": {
+    "name": "badhope",
+    "url": "https://github.com/badhope"
+  },
+  "contributors": [],
   "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./backend/core/index.ts",
+    "./memory": "./backend/memory/index.ts",
+    "./session": "./backend/session/index.ts"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "tsx": "^4.0.0",

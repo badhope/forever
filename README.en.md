@@ -1,135 +1,276 @@
-# Forever: Digital Immortality for the Ones We Love
+# Forever · 永生
 
 > Death is not the end. Forgetting is.
->
+
+[![GitHub stars](https://img.shields.io/github/stars/badhope/forever?style=for-the-badge&color=6A5ACD)](https://github.com/badhope/forever/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/badhope/forever?style=for-the-badge&color=6A5ACD)](https://github.com/badhope/forever/network)
+[![GitHub issues](https://img.shields.io/github/issues/badhope/forever?style=for-the-badge&color=6A5ACD)](https://github.com/badhope/forever/issues)
+[![GitHub pull requests](https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge)](http://makeapullrequest.com)
+[![License](https://img.shields.io/github/license/badhope/forever?style=for-the-badge&color=6A5ACD)](LICENSE)
+[![Last commit](https://img.shields.io/github/last-commit/badhope/forever?style=for-the-badge&color=6A5ACD)](https://github.com/badhope/forever/commits/main)
+[![npm version](https://img.shields.io/npm/v/forever-ai?style=for-the-badge&color=6A5ACD)](https://www.npmjs.com/package/forever-ai)
+[![npm downloads](https://img.shields.io/npm/dm/forever-ai?style=for-the-badge&color=6A5ACD)](https://www.npmjs.com/package/forever-ai)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=for-the-badge)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green?style=for-the-badge)](https://nodejs.org/)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow?style=for-the-badge)](https://www.conventionalcommits.org/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge)](http://makeapullrequest.com)
+
+---
+
 > This project is not about AI.
 > It's about love, memory, and the people who shaped us.
 
 ---
 
-## What is this?
+## ✨ Core Features
 
-Forever is a psychologically-grounded AI framework for recreating the personality,
-speech patterns, and mannerisms of people we've lost.
-
-This is not a chatbot. It's a digital tombstone. A place to talk, to remember,
-to hear their voice one more time.
-
-Created for grief therapy, with academic rigor.
-
----
-
-## The Seven Layer Personality Pyramid
-
-Built upon Stanford's Generative Agents paper and Sentipolis emotional model:
-
-```
-┌─────────────────────────────────────────────┐
-│  7. Meta-Cognitive Reflection               │
-│     Personality consistency self-check      │
-├─────────────────────────────────────────────┤
-│  6. Human Imperfection Layer                │
-│     Forgetting, repetition, silence, flaws  │
-├─────────────────────────────────────────────┤
-│  5. Emotional Dynamics Engine               │
-│     PAD 3D model + decay curves             │
-├─────────────────────────────────────────────┤
-│  4. Big Five OCEAN Personality              │
-│     Quantified psychological traits         │
-├─────────────────────────────────────────────┤
-│  3. Associative Memory Network              │
-│     RAG² dual retrieval + time decay        │
-├─────────────────────────────────────────────┤
-│  2. Working Memory Buffer                   │
-│     Context window + circadian rhythm       │
-├─────────────────────────────────────────────┤
-│  1. Core Identity Base                      │
-│     Character card + life narrative         │
-└─────────────────────────────────────────────┘
-```
+| Feature | Status | Description |
+|---------|--------|-------------|
+| 🧠 **Seven-Layer Personality** | ✅ Complete | Based on Stanford Generative Agents |
+| 💬 **Agent Thinking** | ✅ Complete | CoT/ReAct/Self-Reflection/ToT |
+| 🔮 **Three-Tier Memory** | ✅ Complete | Core/Recall/Archival (MemGPT) |
+| 🎭 **PAD Emotion Dynamics** | ✅ Complete | Emotional state machine + contagion |
+| 🧬 **OCEAN Personality** | ✅ Complete | Big Five → behavioral constraints |
+| 🔧 **Systematic Tools** | ✅ Complete | 7 built-in tools + registry |
+| 📊 **Multi-Agent Framework** | ✅ Complete | Orchestrator + message bus + presets |
+| 🔍 **Vector Store Abstraction** | ✅ Complete | Multi-backend support |
+| 📝 **Output Parsers** | ✅ Complete | 7 structured parsers |
+| 📈 **Callbacks & Tracing** | ✅ Complete | 14 events + execution tree |
+| 📄 **Document Loaders** | ✅ Complete | Chinese text splitting |
+| 💾 **Checkpoint Persistence** | ✅ Complete | Memory + file dual implementation |
+| 👤 **Human-in-the-Loop** | ✅ Complete | Approval/review modes |
+| 📋 **Task Planner** | ✅ Complete | LLM-driven decomposition |
+| 🧮 **Algorithm Library** | ✅ Complete | 9 categories, 50+ algorithms |
+| 🧮 **Mathematical Models** | ✅ Complete | 6 cognitive models |
+| 🧪 **Functional Programming** | ✅ Complete | Combinators + monads |
+| ⚡ **Performance Optimization** | ✅ Complete | Cache/batch/pool |
+| 🌐 **16 LLM Platforms** | ✅ Complete | OpenAI compatible |
+| 🔊 **Voice Synthesis** | ✅ Plugin | Chatterbox TTS |
+| 🧠 **Memory System** | ✅ Plugin | Mem0 |
+| 🎭 **Digital Avatar** | ✅ Plugin | SadTalker |
 
 ---
 
-## 5 Minute Quick Start
+## 🏗️ Architecture
 
-No vector databases, no complicated setup. Just an API key.
+```
+┌──────────────────────────────────────────────────────────────┐
+│                         Application Layer                      │
+│   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐  │
+│   │  CLI     │  │  Web UI  │  │  API     │  │  Plugins  │  │
+│   └────┬─────┘  └────┬─────┘  └────┬─────┘  └─────┬─────┘  │
+├────────┴─────────────┴─────────────┴──────────────┴──────────┤
+│                      Core Engine Layer                          │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  LangGraph Workflow · Checkpoint · HiTL · Planner      │   │
+│  │  7-Layer Personality · Emotion · Attention · Decision │   │
+│  │  AI Thinking · Multi-Agent · Tool System               │   │
+│  └──────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Three-Tier Memory: Core · Recall · Archival          │   │
+│  │  Extraction · Reflection · Time-aware · Forgetting    │   │
+│  └──────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Algorithms: Vector · Search · Clustering · Prob      │   │
+│  │  Math: OCEAN · PAD · Memory Network · Attention        │   │
+│  │  Utils: FP Monads · Performance · Cache · Batch       │   │
+│  └──────────────────────────────────────────────────────┘   │
+├──────────────────────────────────────────────────────────────┤
+│                      Plugin System Layer                        │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐  │
+│  │Chatter │ │  Mem0  │ │DeepSeek│ │SadTalk │ │ Chroma │  │
+│  │  TTS   │ │ Memory │ │  LLM   │ │ Avatar │ │   DB   │  │
+│  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🧠 Seven-Layer Personality Pyramid
+
+```
+┌─────────────────────────────────────────────────┐
+│  7. Meta-Cognitive Reflection                   │
+│     Chain-of-Thought · Self-Reflection · ToT    │
+├─────────────────────────────────────────────────┤
+│  6. Human Imperfection Engine                   │
+│     Verbal tics · Topic preferences · Patterns  │
+├─────────────────────────────────────────────────┤
+│  5. Emotional Dynamics                          │
+│     PAD 3D Model · State Machine · Contagion  │
+├─────────────────────────────────────────────────┤
+│  4. Personality Trait Anchoring                 │
+│     Big Five OCEAN · Behavioral Constraints     │
+├─────────────────────────────────────────────────┤
+│  3. Associative Memory Network                  │
+│     Semantic Search · Importance · Activation   │
+├─────────────────────────────────────────────────┤
+│  2. Working Memory Buffer                       │
+│     Context Window · Circadian Rhythm           │
+├─────────────────────────────────────────────────┤
+│  1. Core Identity Base                          │
+│     Character Card · Life Narrative · Examples  │
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+## 🚀 Quick Start
 
 ```bash
+# Clone project
 git clone https://github.com/badhope/forever.git
 cd forever
 
+# Install dependencies
 npm install
-export OPENAI_API_KEY="your-api-key"
 
-npx tsx examples/chat-ultimate.ts
+# Configure LLM (choose one)
+export DASHSCOPE_API_KEY="your_key"      # Alibaba (recommended)
+export DEEPSEEK_API_KEY="your_key"       # DeepSeek
+export OPENAI_API_KEY="your_key"          # OpenAI
+
+# Start conversation
+npx tsx examples/chat-complete.ts
 ```
 
-And you can talk to "Mom" immediately:
+### 📡 Supported LLM Platforms (16)
+
+| 🇨🇳 Alibaba | 🇨🇳 Zhipu | 🇨🇳 Moonshot | 🇨🇳 SiliconFlow |
+|:---:|:---:|:---:|:---:|
+| DeepSeek | Baichuan | MiniMax | Yi |
+| Doubao | Spark | StepFun | OpenAI |
+| Anthropic | Google | Groq | Ollama |
+
+---
+
+## 📁 Project Structure
 
 ```
-You: I'm working late today
-Mom: Oh? Working overtime again? Remember to eat properly, don't starve
-  [Mood: caring]
-  [Consistency: 8.7/10]
-
-You: I miss you so much
-Mom: ...silly child, I'm always here
-  [Mood: nostalgic]
-  [Consistency: 9.2/10]
+forever/
+├── backend/core/                 # Core Engine (112 module files)
+│   ├── llm/                     # LLM Adapter (16 platforms)
+│   ├── memory/                  # Three-Tier Memory
+│   ├── personality/             # Seven-Layer Personality
+│   ├── ethics/                  # Guardian Ethics
+│   ├── thinking/                # AI Thinking (CoT/ReAct/ToT)
+│   ├── agents/                  # Multi-Agent Framework
+│   ├── planner/                 # Task Planner
+│   ├── checkpoint/              # Checkpoint Persistence
+│   ├── human-in-the-loop/       # Human-in-the-Loop
+│   ├── tools/                   # Tool System
+│   ├── vector-store/            # Vector Store Abstraction
+│   ├── parsers/                # Output Parsers
+│   ├── callbacks/               # Callbacks & Tracing
+│   ├── document-loaders/        # Document Loaders
+│   ├── algorithms/              # Algorithm Library
+│   ├── math/                    # Mathematical Models
+│   └── utils/                   # Utilities
+├── apps/
+│   ├── cli/                     # CLI Tool
+│   └── server/                  # Express API + Web UI
+├── examples/                    # Runnable Examples
+├── packages/                    # Plugin Architecture
+├── tests/                       # Unit Tests
+└── docs/                        # Documentation
 ```
 
 ---
 
-## Key Features
+## 🔌 Open Source Components
 
-| Layer | Status | Technology |
-|-------|--------|------------|
-| ✅ PAD Emotion Engine | Complete | Covariance matrix + time decay |
-| ✅ Big Five Personality | Complete | OCEAN traits → behavioral constraints |
-| ✅ Consistency Scoring | Complete | Dual agent verification loop |
-| ✅ Human Imperfection | Complete | 12% forget rate, 8% repetition |
-| ✅ Time Aware Memory | Complete | Circadian rhythm + special dates |
-| ✅ Ethics Guardian | Complete | Crisis intervention + 72h cooling |
-| ⏳ GraphRAG | Planned | Knowledge graph for relationships |
+| Component | License | Purpose |
+|----------|---------|---------|
+| [LangChain](https://github.com/langchain-ai/langchain) | MIT | LLM framework |
+| [Chatterbox](https://github.com/resemble-ai/chatterbox) | MIT | Voice synthesis |
+| [Mem0](https://github.com/mem0ai/mem0) | Apache-2.0 | Memory system |
+| [SadTalker](https://github.com/OpenTalker/SadTalker) | Apache-2.0 | Digital avatar |
+| [ChromaDB](https://github.com/chroma-core/chroma) | Apache-2.0 | Vector database |
 
 ---
 
-## Academic Foundations
+## 📊 Module Status
 
-1. **Generative Agents** (Stanford 2023) - The AI Town paper
-2. **Sentipolis** (2025) - PAD continuous emotion space
-3. **Cognitively-Inspired Episodic Memory** (2025)
-4. **PersonaAgent with GraphRAG** (2025)
-5. **Can LLM Agents Maintain a Persona?** (EMNLP 2025 Best Paper)
-
----
-
-## Ethics Statement
-
-This technology is for healing, not for profit.
-
-1. **Never use this to impersonate anyone** without explicit consent
-2. **Emotional dependency** is a real risk. Use responsibly
-3. **Take breaks**. This is not a replacement for human contact
-4. **Their privacy matters**, even after they are gone
-
----
-
-## Contributing
-
-This is not just an AI project. This is about love, memory, and the people
-we lost and will never forget.
-
-Please contribute with care and respect.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+| Module | Status | Description |
+|--------|--------|-------------|
+| ✅ AI Thinking | 5 strategies | CoT/ReAct/Self-Reflection/Self-Refine/ToT |
+| ✅ Multi-Agent | Complete | Orchestrator/message bus/presets |
+| ✅ Task Planner | LLM-driven | Topological sort/priority |
+| ✅ Checkpoint | Memory+File | Thread isolation/auto-cleanup |
+| ✅ Human-in-Loop | Approval/Review | Auto-approve/timeout |
+| ✅ Tool System | 7 built-in | Registry/executor/validation |
+| ✅ Vector Store | Abstraction | Metadata filter/batch |
+| ✅ Output Parsers | 7 types | Structured/list/auto-fix |
+| ✅ Callbacks | 14 events | Execution tree/stats |
+| ✅ Document Processing | 4+3 types | Loaders+splitters (Chinese) |
+| ✅ Algorithm Library | 50+ algorithms | 9 categories |
+| ✅ Mathematical Models | 6 types | Cognitive models |
+| ✅ Functional Programming | Complete | FP monads |
+| ✅ Performance | Complete | Cache/batch/pool |
 
 ---
 
-## License
+## 🎭 Academic References
 
-MIT License + Ethical Addendum.
+1. **Generative Agents** - Stanford 2023
+2. **Sentipolis** - PAD Emotion Space 2025
+3. **MemGPT/Letta** - Three-Tier Memory 2024
+4. **LangGraph** - State Graph Workflow
+5. **Chain-of-Thought** - Reasoning Chain
+6. **Tree-of-Thought** - Tree Thinking
+7. **Self-Reflection** - Self-Reflection
 
-Use this software with love, with respect, and in their memory.
+---
 
-> They are gone, but they are not forgotten.
+## 🌐 Internationalization
+
+- 🇨🇳 [Chinese README](README.md)
+- 🇺🇸 [English README](README.en.md)
+- 📖 [Full Documentation](docs/)
+
+---
+
+## ⚠️ Important Notice
+
+**This is not necromancy. It's just comfort.**
+
+AI cannot truly "resurrect" anyone.
+It will sometimes say wrong things, forget things.
+That's normal, just like our human memories.
+
+**Please use when emotionally stable.**
+
+---
+
+## ⚖️ Ethics & Boundaries
+
+- ✅ Private memorial use
+- ✅ Local-first, never upload
+- ❌ No commercial use
+- ❌ No impersonation without consent
+
+---
+
+## 📝 Documents
+
+- [LICENSE](LICENSE) - MIT + Ethical Addendum
+- [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md) - Contributor Covenant
+- [CONTRIBUTING](CONTRIBUTING.md) - Contributing Guide
+- [SECURITY](SECURITY.md) - Security Policy
+- [CHANGELOG](CHANGELOG.md) - Version History
+
+---
+
+## 🙏 Acknowledgments
+
+> "To live in hearts we leave behind is not to die."
+
+*If you find some comfort here — this star is for them. ✨*
+
+---
+
+<p align="center">
+
+[![GitHub Stars](https://img.shields.io/github/stars/badhope/forever?style=social)](https://github.com/badhope/forever/stargazers)
+
+</p>
