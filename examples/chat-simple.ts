@@ -12,12 +12,14 @@ import type { ChatMessage } from '../backend/core/llm/index';
 import type { CharacterCard } from '../backend/core/personality/character-card';
 import motherCard from './mother-demo.json' assert { type: 'json' };
 import * as readline from 'readline';
+import { logger } from '../backend/core/logger';
+import { eventBus } from '../backend/core/event-bus';
 
 // 自动检测LLM配置
 const llmConfig = detectLLMConfig();
 
 if (!llmConfig) {
-  console.log('\n  ❌ 未检测到LLM API Key');
+  logger.error('chat-simple', '未检测到LLM API Key');
   console.log('\n  请设置以下任一环境变量：');
   console.log('    FOREVER_LLM_PROVIDER + FOREVER_LLM_API_KEY  (通用)');
   console.log('    DEEPSEEK_API_KEY / DASHSCOPE_API_KEY / ZHIPU_API_KEY');
@@ -66,6 +68,7 @@ async function chatWithCharacter(userMessage: string): Promise<string> {
   });
 
   const reply = response.content;
+  eventBus.emit('llm:response', { response: reply }).catch(() => {});
 
   messages.push({ role: 'user', content: userMessage });
   messages.push({ role: 'assistant', content: reply });
@@ -110,7 +113,7 @@ function promptUser() {
       console.log(`  [心情: ${emotionEngine.getEmotionLabel()}]`);
     } catch (e: any) {
       console.log('... (沉默了一会儿)');
-      console.log('  ', e.message);
+      logger.error('chat-simple', '对话错误', e.message);
     }
 
     console.log('');
