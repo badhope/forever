@@ -12,28 +12,41 @@
  * - recall_memory_search: 搜索回忆记忆
  * - archival_memory_insert: 插入归档记忆
  * - archival_memory_search: 搜索归档记忆
+ *
+ * 本模块是主入口，组合了四个子模块：
+ * - CoreMemoryManager: 核心记忆操作
+ * - RecallMemoryManager: 回忆记忆操作
+ * - ArchivalMemoryManager: 归档记忆操作
+ * - MemoryToolsExecutor: LLM记忆工具解析与执行
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { chat, type LLMConfig } from '../core/llm/index';
+import type { LLMConfig } from '../core/llm/index';
+import { getAllMemories } from '../core/bridge/index';
+
 import {
-  storeLocalMemory,
-  retrieveLocalMemories,
-  getAllMemories,
-  batchStoreMemories,
-  updateMemory,
-  deleteMemories,
-} from '../core/bridge/index';
+  CoreMemoryManager,
+  CoreMemoryBlock,
+  CATEGORY_LABELS,
+} from './core-memory';
 
-// ============ 类型定义 ============
+import {
+  RecallMemoryManager,
+} from './recall-memory';
 
-export interface CoreMemoryBlock {
-  id: string;
-  category: 'identity' | 'relationship' | 'preference' | 'routine' | 'important_fact';
-  content: string;
-  lastUpdated: string;
-}
+import {
+  ArchivalMemoryManager,
+} from './archival-memory';
+
+import {
+  MemoryToolsExecutor,
+  MemoryToolCall,
+  MemoryToolsDependencies,
+} from './memory-tools';
+
+// ============ 重新导出类型 ============
+
+export type { CoreMemoryBlock, MemoryToolCall };
+export { CATEGORY_LABELS };
 
 export interface MemorySearchResult {
   content: string;
@@ -42,58 +55,44 @@ export interface MemorySearchResult {
   metadata?: Record<string, unknown>;
 }
 
-export interface MemoryToolCall {
-  name: string;
-  arguments: Record<string, unknown>;
-}
-
-// ============ 分类标签映射 ============
-
-const CATEGORY_LABELS: Record<CoreMemoryBlock['category'], string> = {
-  identity: '身份与基本',
-  relationship: '关系与人际',
-  preference: '偏好与喜好',
-  routine: '习惯与日常',
-  important_fact: '重要事实',
-};
-
-// ============ 分层记忆管理器 ============
+// ============ 分层记忆管理器（主入口） ============
 
 export class TieredMemoryManager {
   private characterId: string;
   private llmConfig: LLMConfig;
   private dataDir: string;
 
-  /** Core Memory: 始终在上下文中，按类别分块 */
-  private coreMemory: Map<string, CoreMemoryBlock> = new Map();
-
-  /** Recall Memory 的 ChromaDB collection 标识 */
-  private recallCollectionId: string;
-
-  /** Archival Memory 的 ChromaDB collection 标识 */
-  private archivalCollectionId: string;
+  // 子管理器
+  private coreManager: CoreMemoryManager;
+  private recallManager: RecallMemoryManager;
+  private archivalManager: ArchivalMemoryManager;
+  private toolsExecutor: MemoryToolsExecutor;
 
   constructor(characterId: string, llmConfig: LLMConfig, dataDir?: string) {
     this.characterId = characterId;
     this.llmConfig = llmConfig;
     this.dataDir = dataDir || process.env.FOREVER_DATA_DIR || '/tmp';
-    this.recallCollectionId = `${characterId}_recall`;
-    this.archivalCollectionId = `${characterId}_archival`;
+
+    // 初始化子管理器
+    this.coreManager = new CoreMemoryManager(characterId, this.dataDir);
+    this.recallManager = new RecallMemoryManager(characterId);
+    this.archivalManager = new ArchivalMemoryManager(characterId);
+
+    // 初始化工具执行器
+    const deps: MemoryToolsDependencies = {
+      coreManager: this.coreManager,
+      recallManager: this.recallManager,
+      archivalManager: this.archivalManager,
+    };
+    this.toolsExecutor = new MemoryToolsExecutor(deps);
   }
 
   // ================================================================
-  //  Core Memory 操作
+  //  Core Memory 操作（委托给 CoreMemoryManager）
   // ================================================================
 
   /**
    * 初始化核心记忆（从角色卡加载）
-   *
-   * 将角色卡的各个字段映射为 CoreMemoryBlock：
-   * - identity: 姓名、性别、生日、人生经历、核心特质、说话风格
-   * - relationship: 与用户的关系、家庭关系
-   * - preference: 话题偏好、口头禅
-   * - routine: 习惯列表
-   * - important_fact: 重要记忆
    */
   initializeFromCharacterCard(character: {
     name?: string;
@@ -110,314 +109,96 @@ export class TieredMemoryManager {
     familyRelations?: Array<{ name: string; relation: string; description: string }>;
     habits?: Array<{ name: string; description: string; frequency?: string }>;
   }): void {
-    const now = new Date().toISOString();
-
-    // ---- identity 块 ----
-    const identityParts: string[] = [];
-    if (character.name) identityParts.push(`我叫${character.name}`);
-    if (character.gender) identityParts.push(`性别${character.gender === 'male' ? '男' : character.gender === 'female' ? '女' : '其他'}`);
-    if (character.birthday) identityParts.push(`生日是${character.birthday}`);
-    if (character.deathday) identityParts.push(`离世于${character.deathday}`);
-    if (character.coreTraits?.length) identityParts.push(`性格特点：${character.coreTraits.join('、')}`);
-    if (character.speechStyle) identityParts.push(`说话风格：${character.speechStyle}`);
-    if (character.lifeStory) identityParts.push(`人生经历：${character.lifeStory}`);
-
-    if (identityParts.length > 0) {
-      this.coreMemory.set('identity', {
-        id: 'identity',
-        category: 'identity',
-        content: identityParts.join('。'),
-        lastUpdated: now,
-      });
-    }
-
-    // ---- relationship 块 ----
-    const relationshipParts: string[] = [];
-    if (character.relationship) relationshipParts.push(`与用户的关系：${character.relationship}`);
-    if (character.familyRelations?.length) {
-      for (const rel of character.familyRelations) {
-        relationshipParts.push(`${rel.name}（${rel.relation}）：${rel.description}`);
-      }
-    }
-
-    if (relationshipParts.length > 0) {
-      this.coreMemory.set('relationship', {
-        id: 'relationship',
-        category: 'relationship',
-        content: relationshipParts.join('；'),
-        lastUpdated: now,
-      });
-    }
-
-    // ---- preference 块 ----
-    const preferenceParts: string[] = [];
-    if (character.topics?.length) preferenceParts.push(`感兴趣的话题：${character.topics.join('、')}`);
-    if (character.catchphrases?.length) preferenceParts.push(`口头禅：${character.catchphrases.join('、')}`);
-
-    if (preferenceParts.length > 0) {
-      this.coreMemory.set('preference', {
-        id: 'preference',
-        category: 'preference',
-        content: preferenceParts.join('；'),
-        lastUpdated: now,
-      });
-    }
-
-    // ---- routine 块 ----
-    if (character.habits?.length) {
-      const routineContent = character.habits
-        .map(h => `${h.name}${h.description ? `：${h.description}` : ''}${h.frequency ? `（${h.frequency}）` : ''}`)
-        .join('；');
-
-      this.coreMemory.set('routine', {
-        id: 'routine',
-        category: 'routine',
-        content: routineContent,
-        lastUpdated: now,
-      });
-    }
-
-    // ---- important_fact 块 ----
-    if (character.importantMemories?.length) {
-      this.coreMemory.set('important_fact', {
-        id: 'important_fact',
-        category: 'important_fact',
-        content: character.importantMemories.join('；'),
-        lastUpdated: now,
-      });
-    }
-
-    // 持久化到文件
-    this.saveCoreMemory();
+    this.coreManager.initializeFromCharacterCard(character);
   }
 
   /**
    * 获取所有核心记忆（用于注入Prompt）
-   *
-   * 按类别分组，格式化为结构化文本，适合直接注入系统Prompt。
    */
   getCoreMemoryText(): string {
-    if (this.coreMemory.size === 0) {
-      return '';
-    }
-
-    const lines: string[] = ['<core_memory>'];
-
-    // 按预定义顺序遍历类别
-    const categoryOrder: CoreMemoryBlock['category'][] = [
-      'identity', 'relationship', 'preference', 'routine', 'important_fact',
-    ];
-
-    for (const category of categoryOrder) {
-      const block = this.coreMemory.get(category);
-      if (block) {
-        lines.push(`  <${block.id}>${block.content}</${block.id}>`);
-      }
-    }
-
-    // 处理可能存在的自定义块（不在预定义类别中的）
-    for (const [id, block] of this.coreMemory) {
-      if (!categoryOrder.includes(id as CoreMemoryBlock['category'])) {
-        lines.push(`  <${block.id}>${block.content}</${block.id}>`);
-      }
-    }
-
-    lines.push('</core_memory>');
-    return lines.join('\n');
+    return this.coreManager.getCoreMemoryText();
   }
 
   /**
    * 替换核心记忆块
-   *
-   * 如果 blockId 是预定义类别，则替换对应类别的内容。
-   * 如果 blockId 不存在，则创建新块。
    */
   coreMemoryReplace(blockId: string, newContent: string): CoreMemoryBlock {
-    const existing = this.coreMemory.get(blockId);
-    const now = new Date().toISOString();
-
-    const block: CoreMemoryBlock = {
-      id: blockId,
-      category: existing?.category || this.inferCategory(blockId),
-      content: newContent,
-      lastUpdated: now,
-    };
-
-    this.coreMemory.set(blockId, block);
-    this.saveCoreMemory();
-
-    return block;
+    return this.coreManager.coreMemoryReplace(blockId, newContent);
   }
 
   /**
    * 追加核心记忆
-   *
-   * 在已有核心记忆块的末尾追加内容。
-   * 如果块不存在，则创建新块。
    */
   coreMemoryAppend(blockId: string, content: string): CoreMemoryBlock {
-    const existing = this.coreMemory.get(blockId);
-    const now = new Date().toISOString();
-
-    const newContent = existing
-      ? `${existing.content}\n${content}`
-      : content;
-
-    const block: CoreMemoryBlock = {
-      id: blockId,
-      category: existing?.category || this.inferCategory(blockId),
-      content: newContent,
-      lastUpdated: now,
-    };
-
-    this.coreMemory.set(blockId, block);
-    this.saveCoreMemory();
-
-    return block;
+    return this.coreManager.coreMemoryAppend(blockId, content);
   }
 
   /**
    * 获取核心记忆块
    */
   getCoreBlock(blockId: string): CoreMemoryBlock | undefined {
-    return this.coreMemory.get(blockId);
+    return this.coreManager.getCoreBlock(blockId);
   }
 
   /**
    * 获取所有核心记忆块
    */
   getAllCoreBlocks(): CoreMemoryBlock[] {
-    return Array.from(this.coreMemory.values());
+    return this.coreManager.getAllCoreBlocks();
   }
 
   /**
    * 删除核心记忆块
    */
   removeCoreBlock(blockId: string): boolean {
-    const deleted = this.coreMemory.delete(blockId);
-    if (deleted) {
-      this.saveCoreMemory();
-    }
-    return deleted;
+    return this.coreManager.removeCoreBlock(blockId);
   }
 
   // ================================================================
-  //  Recall Memory 操作
+  //  Recall Memory 操作（委托给 RecallMemoryManager）
   // ================================================================
 
   /**
    * 搜索回忆记忆（最近的对话相关记忆）
-   *
-   * 使用 ChromaDB 向量搜索，collection 标识为 `{characterId}_recall`。
    */
   async recallSearch(query: string, limit: number = 5): Promise<MemorySearchResult[]> {
-    try {
-      const memories = await retrieveLocalMemories({
-        query,
-        characterId: this.recallCollectionId,
-        limit,
-      });
-
-      return memories.map(m => ({
-        content: m.content,
-        score: m.score ?? 0.5,
-        source: 'recall' as const,
-        metadata: {
-          id: m.id,
-          importance: m.importance,
-          emotion: m.emotion,
-          tags: m.tags,
-        },
-      }));
-    } catch (error) {
-      console.warn('[TieredMemory] recallSearch 失败:', error);
-      return [];
-    }
+    return this.recallManager.recallSearch(query, limit);
   }
 
   /**
    * 存储到回忆记忆
-   *
-   * 使用 ChromaDB 存储，collection 标识为 `{characterId}_recall`。
    */
   async recallInsert(
     content: string,
     importance: number = 0.5,
     metadata?: Record<string, unknown>,
   ): Promise<void> {
-    try {
-      await storeLocalMemory({
-        content,
-        characterId: this.recallCollectionId,
-        importance,
-        emotion: (metadata?.emotion as string) || '',
-        tags: (metadata?.tags as string[]) || [],
-        source: 'chat',
-      });
-    } catch (error) {
-      console.warn('[TieredMemory] recallInsert 失败:', error);
-    }
+    return this.recallManager.recallInsert(content, importance, metadata);
   }
 
   // ================================================================
-  //  Archival Memory 操作
+  //  Archival Memory 操作（委托给 ArchivalMemoryManager）
   // ================================================================
 
   /**
    * 搜索归档记忆（长期大量记忆）
-   *
-   * 使用 ChromaDB 向量搜索，collection 标识为 `{characterId}_archival`。
    */
   async archivalSearch(query: string, limit: number = 5): Promise<MemorySearchResult[]> {
-    try {
-      const memories = await retrieveLocalMemories({
-        query,
-        characterId: this.archivalCollectionId,
-        limit,
-      });
-
-      return memories.map(m => ({
-        content: m.content,
-        score: m.score ?? 0.5,
-        source: 'archival' as const,
-        metadata: {
-          id: m.id,
-          importance: m.importance,
-          emotion: m.emotion,
-          tags: m.tags,
-        },
-      }));
-    } catch (error) {
-      console.warn('[TieredMemory] archivalSearch 失败:', error);
-      return [];
-    }
+    return this.archivalManager.archivalSearch(query, limit);
   }
 
   /**
    * 插入归档记忆
-   *
-   * 使用 ChromaDB 存储，collection 标识为 `{characterId}_archival`。
    */
   async archivalInsert(
     content: string,
     metadata?: Record<string, unknown>,
   ): Promise<void> {
-    try {
-      await storeLocalMemory({
-        content,
-        characterId: this.archivalCollectionId,
-        importance: (metadata?.importance as number) ?? 0.3,
-        emotion: (metadata?.emotion as string) || '',
-        tags: (metadata?.tags as string[]) || [],
-        source: 'reflection',
-      });
-    } catch (error) {
-      console.warn('[TieredMemory] archivalInsert 失败:', error);
-    }
+    return this.archivalManager.archivalInsert(content, metadata);
   }
 
   // ================================================================
-  //  统一搜索
+  //  统一搜索与智能存储
   // ================================================================
 
   /**
@@ -435,8 +216,9 @@ export class TieredMemoryManager {
     // 1. Core Memory 关键词匹配
     const queryLower = query.toLowerCase();
     const queryTokens = queryLower.split(/\s+/).filter(t => t.length > 1);
+    const coreBlocks = this.coreManager.getAllCoreBlocks();
 
-    for (const block of this.coreMemory.values()) {
+    for (const block of coreBlocks) {
       const blockLower = block.content.toLowerCase();
       let matchScore = 0;
 
@@ -473,7 +255,7 @@ export class TieredMemoryManager {
 
     // 2. Recall Memory 向量搜索
     try {
-      const recallResults = await this.recallSearch(query, limit);
+      const recallResults = await this.recallManager.recallSearch(query, limit);
       allResults.push(...recallResults);
     } catch {
       // 静默处理
@@ -481,7 +263,7 @@ export class TieredMemoryManager {
 
     // 3. Archival Memory 向量搜索
     try {
-      const archivalResults = await this.archivalSearch(query, limit);
+      const archivalResults = await this.archivalManager.archivalSearch(query, limit);
       allResults.push(...archivalResults);
     } catch {
       // 静默处理
@@ -495,272 +277,90 @@ export class TieredMemoryManager {
     return deduplicated.slice(0, limit);
   }
 
+  /**
+   * 智能记忆路由：根据内容自动决定存储到哪一层
+   *
+   * @param content 记忆内容
+   * @param importance 重要性评分
+   * @param metadata 附加元数据
+   */
+  async smartStore(
+    content: string,
+    importance: number = 0.5,
+    metadata?: Record<string, unknown>,
+  ): Promise<string> {
+    if (importance >= 0.8) {
+      // 高重要性：更新核心记忆 + 存入归档
+      const category = this.inferCategoryFromContent(content);
+      this.coreManager.coreMemoryAppend(category, content);
+      await this.archivalManager.archivalInsert(content, { importance, ...metadata });
+      return `core+archival (importance=${importance.toFixed(2)})`;
+    } else if (importance >= 0.5) {
+      // 中等重要性：存入回忆记忆
+      await this.recallManager.recallInsert(content, importance, metadata);
+      return `recall (importance=${importance.toFixed(2)})`;
+    } else {
+      // 低重要性：仅存入归档
+      await this.archivalManager.archivalInsert(content, { importance, ...metadata });
+      return `archival (importance=${importance.toFixed(2)})`;
+    }
+  }
+
   // ================================================================
-  //  LLM 记忆工具调用
+  //  LLM 记忆工具调用（委托给 MemoryToolsExecutor）
   // ================================================================
 
   /**
    * 解析 LLM 输出中的记忆工具调用
-   *
-   * 支持的格式：
-   * - `{"name": "core_memory_replace", "arguments": {"blockId": "...", "content": "..."}}`
-   * - `{"name": "core_memory_append", "arguments": {"blockId": "...", "content": "..."}}`
-   * - `{"name": "recall_memory_search", "arguments": {"query": "...", "limit": 5}}`
-   * - `{"name": "archival_memory_insert", "arguments": {"content": "..."}}`
-   * - `{"name": "archival_memory_search", "arguments": {"query": "...", "limit": 5}}`
-   *
-   * LLM 可能在输出中嵌入多个工具调用 JSON 对象。
    */
   parseMemoryToolCalls(llmOutput: string): MemoryToolCall[] {
-    const toolCalls: MemoryToolCall[] = [];
-
-    // 已知的记忆工具名称
-    const knownTools = new Set([
-      'core_memory_replace',
-      'core_memory_append',
-      'recall_memory_search',
-      'archival_memory_insert',
-      'archival_memory_search',
-    ]);
-
-    // 匹配 JSON 对象模式：{"name": "...", "arguments": {...}}
-    // 使用非贪婪匹配，支持嵌套 JSON
-    const jsonPattern = /\{"name"\s*:\s*"([^"]+)"\s*,\s*"arguments"\s*:\s*(\{[^}]*\})\s*\}/g;
-
-    let match: RegExpExecArray | null;
-    while ((match = jsonPattern.exec(llmOutput)) !== null) {
-      const toolName = match[1];
-      if (!knownTools.has(toolName)) {
-        continue;
-      }
-
-      try {
-        const args = JSON.parse(match[2]);
-        toolCalls.push({
-          name: toolName,
-          arguments: args,
-        });
-      } catch {
-        // 参数解析失败，跳过
-        console.warn(`[TieredMemory] 无法解析工具调用参数: ${match[2]}`);
-      }
-    }
-
-    // 备用模式：匹配更复杂的嵌套 arguments
-    if (toolCalls.length === 0) {
-      const complexPattern = /\{"name"\s*:\s*"([^"]+)"\s*,\s*"arguments"\s*:\s*(\{[\s\S]*?\})\s*\}/g;
-      while ((match = complexPattern.exec(llmOutput)) !== null) {
-        const toolName = match[1];
-        if (!knownTools.has(toolName)) {
-          continue;
-        }
-
-        try {
-          const args = JSON.parse(match[2]);
-          toolCalls.push({
-            name: toolName,
-            arguments: args,
-          });
-        } catch {
-          // 尝试修复常见的 JSON 问题（如末尾多余逗号）
-          try {
-            const cleaned = match[2].replace(/,\s*([}\]])/g, '$1');
-            const args = JSON.parse(cleaned);
-            toolCalls.push({
-              name: toolName,
-              arguments: args,
-            });
-          } catch {
-            console.warn(`[TieredMemory] 无法解析复杂工具调用参数`);
-          }
-        }
-      }
-    }
-
-    return toolCalls;
+    return this.toolsExecutor.parseMemoryToolCalls(llmOutput);
   }
 
   /**
    * 执行记忆工具调用
-   *
-   * 路由到对应的记忆操作方法，返回结果文本。
    */
   async executeMemoryToolCall(toolCall: MemoryToolCall): Promise<string> {
-    const { name, arguments: args } = toolCall;
+    return this.toolsExecutor.executeMemoryToolCall(toolCall);
+  }
 
-    try {
-      switch (name) {
-        case 'core_memory_replace': {
-          const blockId = String(args.blockId || '');
-          const content = String(args.content || '');
-          if (!blockId || !content) {
-            return '[记忆工具错误] core_memory_replace 需要 blockId 和 content 参数';
-          }
-          const block = this.coreMemoryReplace(blockId, content);
-          return `[记忆已更新] 核心记忆 "${block.id}" 已替换为: ${block.content}`;
-        }
-
-        case 'core_memory_append': {
-          const blockId = String(args.blockId || '');
-          const content = String(args.content || '');
-          if (!blockId || !content) {
-            return '[记忆工具错误] core_memory_append 需要 blockId 和 content 参数';
-          }
-          const block = this.coreMemoryAppend(blockId, content);
-          return `[记忆已追加] 核心记忆 "${block.id}" 已追加内容`;
-        }
-
-        case 'recall_memory_search': {
-          const query = String(args.query || '');
-          const limit = Number(args.limit) || 5;
-          if (!query) {
-            return '[记忆工具错误] recall_memory_search 需要 query 参数';
-          }
-          const results = await this.recallSearch(query, limit);
-          if (results.length === 0) {
-            return '[回忆搜索] 未找到相关记忆';
-          }
-          const formatted = results
-            .map((r, i) => `${i + 1}. [分数: ${r.score.toFixed(2)}] ${r.content}`)
-            .join('\n');
-          return `[回忆搜索结果]\n${formatted}`;
-        }
-
-        case 'archival_memory_insert': {
-          const content = String(args.content || '');
-          if (!content) {
-            return '[记忆工具错误] archival_memory_insert 需要 content 参数';
-          }
-          await this.archivalInsert(content, args as Record<string, unknown>);
-          return `[归档已插入] 内容已存入归档记忆`;
-        }
-
-        case 'archival_memory_search': {
-          const query = String(args.query || '');
-          const limit = Number(args.limit) || 5;
-          if (!query) {
-            return '[记忆工具错误] archival_memory_search 需要 query 参数';
-          }
-          const results = await this.archivalSearch(query, limit);
-          if (results.length === 0) {
-            return '[归档搜索] 未找到相关记忆';
-          }
-          const formatted = results
-            .map((r, i) => `${i + 1}. [分数: ${r.score.toFixed(2)}] ${r.content}`)
-            .join('\n');
-          return `[归档搜索结果]\n${formatted}`;
-        }
-
-        default:
-          return `[记忆工具错误] 未知工具: ${name}`;
-      }
-    } catch (error) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      return `[记忆工具执行失败] ${name}: ${errMsg}`;
-    }
+  /**
+   * 批量执行多个记忆工具调用
+   */
+  async executeMemoryToolCalls(toolCalls: MemoryToolCall[]): Promise<string[]> {
+    return this.toolsExecutor.executeMemoryToolCalls(toolCalls);
   }
 
   /**
    * 生成记忆工具的 Prompt 描述（注入到系统 Prompt 中）
-   *
-   * 告诉 LLM 它可以使用哪些记忆工具以及如何使用它们。
    */
   getMemoryToolsPrompt(): string {
-    return `你拥有一个分层记忆系统来管理你的长期记忆。你可以使用以下工具来主动管理记忆：
+    return this.toolsExecutor.getMemoryToolsPrompt();
+  }
 
-## 可用记忆工具
-
-### 1. core_memory_replace - 替换核心记忆
-替换一个核心记忆块的完整内容。核心记忆始终在你的上下文中。
-- 参数: {"name": "core_memory_replace", "arguments": {"blockId": "<块ID>", "content": "<新内容>"}}
-- 可用块ID: identity, relationship, preference, routine, important_fact
-- 使用场景: 当你发现某个核心信息需要更新时（如用户告诉你他们的新工作）
-
-### 2. core_memory_append - 追加核心记忆
-向已有的核心记忆块追加新内容。
-- 参数: {"name": "core_memory_append", "arguments": {"blockId": "<块ID>", "content": "<追加内容>"}}
-- 使用场景: 当你需要在不覆盖现有信息的情况下添加新信息时
-
-### 3. recall_memory_search - 搜索回忆记忆
-搜索过去的对话历史中与查询相关的记忆。
-- 参数: {"name": "recall_memory_search", "arguments": {"query": "<搜索内容>", "limit": <数量>}}
-- 使用场景: 当你需要回忆之前对话中提到的信息时
-
-### 4. archival_memory_insert - 插入归档记忆
-将信息存入长期归档记忆。归档记忆不会自动出现在上下文中，但可以通过搜索检索。
-- 参数: {"name": "archival_memory_insert", "arguments": {"content": "<要归档的内容>"}}
-- 使用场景: 当你学到新的重要信息但不想占用核心记忆空间时
-
-### 5. archival_memory_search - 搜索归档记忆
-搜索长期归档记忆中与查询相关的信息。
-- 参数: {"name": "archival_memory_search", "arguments": {"query": "<搜索内容>", "limit": <数量>}}
-- 使用场景: 当你需要查找之前归档的详细信息时
-
-## 使用规则
-- 只在对话中出现值得记住的重要信息时才使用记忆工具
-- 日常寒暄不需要记忆
-- 替换核心记忆时要谨慎，确保新内容准确完整
-- 你可以在一次回复中使用多个记忆工具
-- 工具调用的JSON格式必须正确`;
+  /**
+   * 检查 LLM 输出是否包含记忆工具调用
+   */
+  hasMemoryToolCalls(llmOutput: string): boolean {
+    return this.toolsExecutor.hasMemoryToolCalls(llmOutput);
   }
 
   // ================================================================
-  //  持久化
+  //  持久化（委托给 CoreMemoryManager）
   // ================================================================
 
   /**
    * 保存核心记忆到 JSON 文件
-   *
-   * 文件路径: `{dataDir}/core_memory_{characterId}.json`
    */
   saveCoreMemory(): void {
-    try {
-      const data: Record<string, CoreMemoryBlock> = {};
-      for (const [key, block] of this.coreMemory) {
-        data[key] = block;
-      }
-
-      const filePath = this.getCoreMemoryFilePath();
-      const dir = path.dirname(filePath);
-
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-
-      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
-    } catch (error) {
-      console.warn('[TieredMemory] 保存核心记忆失败:', error);
-    }
+    this.coreManager.saveToFile();
   }
 
   /**
    * 从 JSON 文件加载核心记忆
-   *
-   * 文件路径: `{dataDir}/core_memory_{characterId}.json`
    */
   loadCoreMemory(): void {
-    try {
-      const filePath = this.getCoreMemoryFilePath();
-
-      if (!fs.existsSync(filePath)) {
-        console.log('[TieredMemory] 核心记忆文件不存在，使用空记忆初始化');
-        return;
-      }
-
-      const raw = fs.readFileSync(filePath, 'utf-8');
-      const data = JSON.parse(raw) as Record<string, CoreMemoryBlock>;
-
-      this.coreMemory.clear();
-      for (const [key, block] of Object.entries(data)) {
-        if (block && block.id && block.content && block.category) {
-          this.coreMemory.set(key, block);
-        }
-      }
-
-      console.log(`[TieredMemory] 已加载 ${this.coreMemory.size} 个核心记忆块`);
-    } catch (error) {
-      console.warn('[TieredMemory] 加载核心记忆失败:', error);
-    }
+    this.coreManager.loadFromFile();
   }
 
   // ================================================================
@@ -777,12 +377,15 @@ export class TieredMemoryManager {
     recallCount: number;
     archivalCount: number;
   }> {
+    const recallCollectionId = `${this.characterId}_recall`;
+    const archivalCollectionId = `${this.characterId}_archival`;
+
     let recallCount = 0;
     let archivalCount = 0;
 
     // 获取 recall 记忆数量
     try {
-      const recallMemories = await getAllMemories(this.recallCollectionId);
+      const recallMemories = await getAllMemories(recallCollectionId);
       recallCount = recallMemories.length;
     } catch {
       // ChromaDB 可能不可用
@@ -790,14 +393,16 @@ export class TieredMemoryManager {
 
     // 获取 archival 记忆数量
     try {
-      const archivalMemories = await getAllMemories(this.archivalCollectionId);
+      const archivalMemories = await getAllMemories(archivalCollectionId);
       archivalCount = archivalMemories.length;
     } catch {
       // ChromaDB 可能不可用
     }
 
+    const coreStats = this.coreManager.getStats();
+
     return {
-      coreBlocks: this.coreMemory.size,
+      coreBlocks: coreStats.coreBlocks,
       recallCount,
       archivalCount,
     };
@@ -807,14 +412,7 @@ export class TieredMemoryManager {
    * 获取核心记忆统计（同步版本）
    */
   getCoreStats(): { coreBlocks: number; totalChars: number } {
-    let totalChars = 0;
-    for (const block of this.coreMemory.values()) {
-      totalChars += block.content.length;
-    }
-    return {
-      coreBlocks: this.coreMemory.size,
-      totalChars,
-    };
+    return this.coreManager.getStats();
   }
 
   // ================================================================
@@ -838,40 +436,11 @@ export class TieredMemoryManager {
   ): Promise<void> {
     // 存入 Recall Memory
     const content = `用户: ${userMessage}\n我: ${assistantReply}`;
-    await this.recallInsert(content, importance);
+    await this.recallManager.recallInsert(content, importance);
 
     // 如果重要性较高，同时存入 Archival Memory 作为长期备份
     if (importance >= 0.7) {
-      await this.archivalInsert(content, { importance });
-    }
-  }
-
-  /**
-   * 智能记忆路由：根据内容自动决定存储到哪一层
-   *
-   * @param content 记忆内容
-   * @param importance 重要性评分
-   * @param metadata 附加元数据
-   */
-  async smartStore(
-    content: string,
-    importance: number = 0.5,
-    metadata?: Record<string, unknown>,
-  ): Promise<string> {
-    if (importance >= 0.8) {
-      // 高重要性：更新核心记忆 + 存入归档
-      const category = this.inferCategoryFromContent(content);
-      this.coreMemoryAppend(category, content);
-      await this.archivalInsert(content, { importance, ...metadata });
-      return `core+archival (importance=${importance.toFixed(2)})`;
-    } else if (importance >= 0.5) {
-      // 中等重要性：存入回忆记忆
-      await this.recallInsert(content, importance, metadata);
-      return `recall (importance=${importance.toFixed(2)})`;
-    } else {
-      // 低重要性：仅存入归档
-      await this.archivalInsert(content, { importance, ...metadata });
-      return `archival (importance=${importance.toFixed(2)})`;
+      await this.archivalManager.archivalInsert(content, { importance });
     }
   }
 
@@ -931,36 +500,6 @@ export class TieredMemoryManager {
   // ================================================================
 
   /**
-   * 推断核心记忆块的类别
-   */
-  private inferCategory(blockId: string): CoreMemoryBlock['category'] {
-    const categoryMap: Record<string, CoreMemoryBlock['category']> = {
-      identity: 'identity',
-      relationship: 'relationship',
-      preference: 'preference',
-      routine: 'routine',
-      important_fact: 'important_fact',
-      important: 'important_fact',
-      fact: 'important_fact',
-      habit: 'routine',
-      habits: 'routine',
-      like: 'preference',
-      dislike: 'preference',
-      family: 'relationship',
-      friend: 'relationship',
-    };
-
-    const idLower = blockId.toLowerCase();
-    for (const [key, category] of Object.entries(categoryMap)) {
-      if (idLower.includes(key)) {
-        return category;
-      }
-    }
-
-    return 'important_fact'; // 默认类别
-  }
-
-  /**
    * 根据内容推断核心记忆类别
    */
   private inferCategoryFromContent(content: string): CoreMemoryBlock['category'] {
@@ -985,15 +524,6 @@ export class TieredMemoryManager {
     }
 
     return 'important_fact';
-  }
-
-  /**
-   * 获取核心记忆文件路径
-   */
-  private getCoreMemoryFilePath(): string {
-    // 清理 characterId 中的特殊字符，确保文件名安全
-    const safeId = this.characterId.replace(/[^a-zA-Z0-9_\u4e00-\u9fff-]/g, '_');
-    return path.join(this.dataDir, `core_memory_${safeId}.json`);
   }
 
   /**

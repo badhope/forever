@@ -25,7 +25,7 @@ import * as readline from 'readline';
 // 相对路径导入
 import { detectLLMConfig, listProviders } from '../backend/core/llm/index';
 import { checkEnvironment, getMemoryCount, checkPythonPackage } from '../backend/core/bridge/index';
-import { ForeverConversation } from './conversation';
+import { ForeverConversation } from './conversation-core';
 import type { CharacterCard } from './character-card';
 import { logger } from '../backend/core/logger';
 import { loadConfig } from '../backend/core/config';

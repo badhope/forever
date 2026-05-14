@@ -17,17 +17,35 @@
     "clean": "rm -rf dist"
   },
   "keywords": [
-    "ai", "agent", "digital-immortality", "digital-legacy", "grief-therapy",
-    "personality-simulation", "generative-agents", "character-ai", "langgraph",
-    "chatterbox-tts", "mem0", "sadtalker", "text-to-speech", "voice-cloning",
-    "talking-head", "memory-system", "rag", "pad-emotion-model", "ocean-personality",
-    "big-five", "emotion-dynamics", "chinese-nlp", "deepseek"
+    "ai",
+    "agent",
+    "digital-immortality",
+    "digital-legacy",
+    "grief-therapy",
+    "personality-simulation",
+    "generative-agents",
+    "character-ai",
+    "langgraph",
+    "chatterbox-tts",
+    "mem0",
+    "sadtalker",
+    "text-to-speech",
+    "voice-cloning",
+    "talking-head",
+    "memory-system",
+    "rag",
+    "pad-emotion-model",
+    "ocean-personality",
+    "big-five",
+    "emotion-dynamics",
+    "chinese-nlp",
+    "deepseek"
   ],
   "author": "badhope",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.0.0",
     "tsx": "^4.0.0",
-    "typescript": "^5.3.0"
+    "typescript": "^5.9.3"
   }
 }
