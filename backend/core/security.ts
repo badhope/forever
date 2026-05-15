@@ -217,9 +217,11 @@ interface RateLimitEntry {
 }
 
 /**
- * RateLimiter - Sliding window rate limiting implementation
+ * SlidingWindowRateLimiter - 滑动窗口速率限制器实现
+ * 
+ * 注意：如需令牌桶算法，请使用 rate-limiter.ts 中的 TokenBucketRateLimiter
  */
-export class RateLimiter {
+export class SlidingWindowRateLimiter {
   private limits: Map<string, RateLimitEntry> = new Map();
   private windowMs: number;
   private maxRequests: number;

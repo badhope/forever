@@ -17,10 +17,11 @@
 
 import type { LLMConfig, ChatMessage } from '../llm/types.js';
 import { chat } from '../llm/index.js';
+import { logger } from '../logger.js';
 import type {
   ThinkingResult,
   ThinkingStrategy,
-  ToolRegistry,
+  ThinkingToolRegistry,
   ReActConfig,
   ReActStep,
 } from './types';
@@ -36,7 +37,7 @@ export class ReActStrategy implements ThinkingStrategy {
   readonly description = '结合推理和行动，在思考过程中调用工具获取信息';
 
   private llmConfig: LLMConfig;
-  private tools: ToolRegistry;
+  private tools: ThinkingToolRegistry;
   private maxIterations: number;
 
   constructor(config: ReActConfig) {
@@ -243,7 +244,7 @@ export class ReActStrategy implements ThinkingStrategy {
       return response.content;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('ReAct LLM 调用失败:', errorMessage);
+      logger.error('thinking:react', 'ReAct LLM 调用失败:', errorMessage);
       
       // 返回一个降级响应，让 ReAct 循环可以继续
       return `思考: 由于技术问题，我无法继续深入分析

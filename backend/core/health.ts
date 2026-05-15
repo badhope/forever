@@ -277,19 +277,76 @@ export function createDiskSpaceHealthCheck(
 ): HealthCheckFunction {
   return async () => {
     try {
-      // Note: In a real implementation, you'd use a library like 'check-disk-space'
-      // or execute a system command to get actual disk usage
-      // This is a placeholder implementation
-      
-      // Simulated disk usage check
-      const usedPercentage = 0; // Would be actual value from system
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+
+      let usedPercentage: number;
+      let totalGB: number;
+      let freeGB: number;
+
+      // 根据平台选择命令
+      const platform = process.platform;
+      if (platform === 'win32') {
+        // Windows: 使用 wmic 或 PowerShell
+        try {
+          const { stdout } = await execAsync('wmic logicaldisk get size,freespace /format:csv', { timeout: 10000 });
+          const lines = stdout.trim().split('\n').filter((l: string) => l.includes(','));
+          if (lines.length > 0) {
+            const parts = lines[lines.length - 1].split(',');
+            const freeSpace = parseFloat(parts[1]) || 0;
+            const size = parseFloat(parts[2]) || 1;
+            usedPercentage = ((size - freeSpace) / size) * 100;
+            totalGB = size / (1024 * 1024 * 1024);
+            freeGB = freeSpace / (1024 * 1024 * 1024);
+          } else {
+            throw new Error('无法解析磁盘信息');
+          }
+        } catch {
+          // 回退方案
+          usedPercentage = 0;
+          totalGB = 0;
+          freeGB = 0;
+        }
+      } else {
+        // Linux / macOS: 使用 df
+        try {
+          const { stdout } = await execAsync('df -k /', { timeout: 10000 });
+          const lines = stdout.trim().split('\n');
+          if (lines.length >= 2) {
+            const parts = lines[1].split(/\s+/);
+            const totalKB = parseInt(parts[1], 10) || 1;
+            const usedKB = parseInt(parts[2], 10) || 0;
+            const freeKB = parseInt(parts[3], 10) || 0;
+            usedPercentage = (usedKB / totalKB) * 100;
+            totalGB = totalKB / (1024 * 1024);
+            freeGB = freeKB / (1024 * 1024);
+          } else {
+            throw new Error('无法解析 df 输出');
+          }
+        } catch {
+          // 回退方案：尝试 macOS 的 diskutil
+          try {
+            const { stdout } = await execAsync("diskutil info / | grep 'Capacity' | head -1", { timeout: 10000 });
+            usedPercentage = 0;
+            totalGB = 0;
+            freeGB = 0;
+          } catch {
+            usedPercentage = 0;
+            totalGB = 0;
+            freeGB = 0;
+          }
+        }
+      }
       
       if (usedPercentage >= criticalThreshold) {
         return {
           status: 'unhealthy' as const,
-          message: `Disk usage critical: ${usedPercentage.toFixed(1)}%`,
+          message: `磁盘空间严重不足: ${usedPercentage.toFixed(1)}% 已用 (剩余 ${freeGB.toFixed(1)}GB / 共 ${totalGB.toFixed(1)}GB)`,
           metadata: { 
             usedPercentage,
+            totalGB,
+            freeGB,
             criticalThreshold,
             warningThreshold
           }
@@ -297,9 +354,11 @@ export function createDiskSpaceHealthCheck(
       } else if (usedPercentage >= warningThreshold) {
         return {
           status: 'degraded' as const,
-          message: `Disk usage high: ${usedPercentage.toFixed(1)}%`,
+          message: `磁盘空间不足: ${usedPercentage.toFixed(1)}% 已用 (剩余 ${freeGB.toFixed(1)}GB / 共 ${totalGB.toFixed(1)}GB)`,
           metadata: { 
             usedPercentage,
+            totalGB,
+            freeGB,
             criticalThreshold,
             warningThreshold
           }
@@ -307,9 +366,11 @@ export function createDiskSpaceHealthCheck(
       } else {
         return {
           status: 'healthy' as const,
-          message: `Disk usage normal: ${usedPercentage.toFixed(1)}%`,
+          message: `磁盘空间正常: ${usedPercentage.toFixed(1)}% 已用 (剩余 ${freeGB.toFixed(1)}GB / 共 ${totalGB.toFixed(1)}GB)`,
           metadata: { 
             usedPercentage,
+            totalGB,
+            freeGB,
             criticalThreshold,
             warningThreshold
           }
@@ -318,7 +379,7 @@ export function createDiskSpaceHealthCheck(
     } catch (error) {
       return {
         status: 'unhealthy' as const,
-        message: `Failed to check disk space: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `磁盘空间检查失败: ${error instanceof Error ? error.message : 'Unknown error'}`,
         metadata: { error: error instanceof Error ? error.name : 'Unknown' }
       };
     }

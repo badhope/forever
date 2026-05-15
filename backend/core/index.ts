@@ -1,16 +1,17 @@
 /**
  * Forever - 核心模块统一导出
- * 
- * 新增 AI Agent 功能：
- * - 流式输出支持
- * - 函数调用（工具使用）
- * - 网页浏览（Playwright）
- * - 代码执行（Docker沙箱）
- * - 长期记忆压缩
+ *
+ * 统一入口，所有子模块通过此文件对外暴露。
+ * 修复记录：
+ * - H3-H10: 所有 abstract class / class / enum 改用值导出
+ * - H4: 补充 health / security / rate-limiter 模块导出
+ * - H5: RateLimiter 命名冲突解决（SlidingWindowRateLimiter）
+ * - M8-M17: 补充所有缺失类型导出
+ * - M18: 消除 memory 模块重复导出
  */
 
 // ============================================================================
-// LLM 统一适配器（增强）
+// LLM 统一适配器
 // ============================================================================
 
 export {
@@ -33,12 +34,10 @@ export type {
   LLMConfig,
   LLMResponse,
   LLMProvider,
-  // 函数调用类型
   ToolCall,
-  ToolDefinition,
+  ToolDefinition as LLMToolDefinition,
   ToolCallResult,
   ChatWithToolsOptions,
-  // 流式输出类型
   StreamChunk,
   StreamCallback,
   StreamWithToolsResult,
@@ -79,8 +78,6 @@ export type {
   Habit, SpeechPattern, ReactionTemplate,
 } from './personality/personality-types';
 
-export type { OceanPersonality as OceanPersonalityType } from './personality/personality-types';
-
 // ============================================================================
 // 伦理系统
 // ============================================================================
@@ -99,6 +96,50 @@ export type { ForeverConfig } from './config';
 export { eventBus } from './event-bus';
 export type { EventType } from './event-bus';
 export { ForeverError, LLMError, MemoryError, TTSError, ConfigError, withRetry, CircuitBreaker } from './errors';
+
+// ============================================================================
+// 健康检查（H4: 新增导出）
+// ============================================================================
+
+export {
+  HealthChecker,
+  createMemoryHealthCheck,
+  createLLMHealthCheck,
+  createDiskSpaceHealthCheck,
+  createPythonHealthCheck,
+} from './health';
+
+export type {
+  HealthCheckResult,
+  HealthStatus,
+  SystemHealth,
+} from './health';
+
+// ============================================================================
+// 安全工具（H4: 新增导出）
+// ============================================================================
+
+export {
+  InputSanitizer,
+  TokenCounter,
+  SlidingWindowRateLimiter,
+} from './security';
+
+// ============================================================================
+// 速率限制器（H4: 新增导出，H5: 令牌桶算法）
+// ============================================================================
+
+export {
+  RateLimiter as TokenBucketRateLimiter,
+  defaultRateLimiter,
+  strictRateLimiter,
+  lenientRateLimiter,
+} from './rate-limiter';
+
+export type {
+  RateLimitConfig,
+  RateLimitStatus,
+} from './rate-limiter';
 
 // ============================================================================
 // 多模态管线
@@ -166,28 +207,63 @@ export {
 } from './utils/performance';
 
 // ============================================================================
-// 检查点持久化
+// 检查点持久化（H9: BaseCheckpointer 改为值导出）
 // ============================================================================
 
-export { MemoryCheckpointer, FileCheckpointer, CheckpointManager } from './checkpoint/index';
-export type { Checkpoint, CheckpointListOptions as CheckpointFilter } from './checkpoint/index';
+export {
+  BaseCheckpointer,
+  MemoryCheckpointer,
+  FileCheckpointer,
+  CheckpointManager,
+} from './checkpoint/index';
+
+export type {
+  Checkpoint,
+  CheckpointListOptions,
+  CheckpointListOptions as CheckpointFilter,
+  CheckpointManagerOptions,
+} from './checkpoint/index';
 
 // ============================================================================
-// 人工介入机制
+// 人工介入机制（M15: 补充缺失类型）
 // ============================================================================
 
 export { HumanInTheLoopManager } from './human-in-the-loop/index';
-export type { HumanIntervention, InterventionPolicy, InterventionPolicyRule } from './human-in-the-loop/index';
+
+export type {
+  InterventionType,
+  InterventionStatus,
+  HumanIntervention,
+  InterventionPolicyRule,
+  InterventionPolicy,
+  InterventionRequestOptions,
+  InterventionResolveOptions,
+  InterventionRequestedEvent,
+  InterventionResolvedEvent,
+  InterventionTimeoutEvent,
+} from './human-in-the-loop/index';
 
 // ============================================================================
-// 任务规划器
+// 任务规划器（H3: PriorityStrategy 改为值导出，M16: 补充缺失类型）
 // ============================================================================
 
-export { TaskPlanner } from './planner/index';
-export type { Task, Plan, PlanProgress, PriorityStrategy } from './planner/index';
+export { TaskPlanner, PriorityStrategy } from './planner/index';
+
+export type {
+  TaskStatus,
+  PlanStatus,
+  TaskPriority,
+  TaskComplexity as PlannerTaskComplexity,
+  Task,
+  Plan,
+  PlanProgress,
+  PriorityStrategyType,
+  TaskPlannerOptions,
+  LLMDecompositionResult,
+} from './planner/index';
 
 // ============================================================================
-// 系统化工具定义（增强）
+// 系统化工具定义
 // ============================================================================
 
 export {
@@ -196,6 +272,14 @@ export {
   ToolExecutor,
   SchemaValidator,
   // 基础工具
+  WebSearchTool,
+  CalculatorTool,
+  DateTimeTool,
+  FileReadTool,
+  FileWriteTool,
+  createMemorySearchTool,
+  createMemoryStoreTool,
+  // 工厂函数
   createDefaultToolRegistry,
   createSafeToolRegistry,
   createFullToolRegistry,
@@ -212,7 +296,7 @@ export {
   codeExecuteTool,
   getCodeExecutionTools,
   registerCodeExecutionTools,
-  // 记忆压缩
+  // 记忆压缩（从 tools 导出，避免与 memory 模块重复）
   MemoryCompressor,
   LongTermMemory,
   calculateImportance as calculateMemoryImportance,
@@ -221,71 +305,153 @@ export {
 } from './tools/index';
 
 export type {
+  JsonSchema,
+  ToolHandler,
   ToolDefinition,
   ToolResult,
-  // 浏览器工具类型
+  OpenAIFunctionSchema,
+  ToolExecutorOptions,
+  ToolRegistryOptions,
   BrowseResult,
   SearchResult,
-  // 代码执行工具类型
   CodeExecutionResult,
   CodeExecutionConfig,
   SupportedLanguage,
-  // 记忆压缩类型
-  MemoryEntry,
-  CompressionConfig,
-  CompressionResult,
+  MemoryEntry as ToolMemoryEntry,
+  CompressionConfig as ToolCompressionConfig,
+  CompressionResult as ToolCompressionResult,
 } from './tools/index';
 
 // ============================================================================
-// 向量存储抽象层
-// ============================================================================
-
-export { InMemoryVectorStore } from './vector-store/index';
-export type { Embedding, VectorStoreConfig, MetadataFilter, BaseVectorStore } from './vector-store/index';
-
-// ============================================================================
-// 输出解析器
+// 记忆管理（独立模块，M18: 不再重复导出 tools 中的同名项）
 // ============================================================================
 
 export {
-  StructuredOutputParser, ListOutputParser, EnumOutputParser,
-  CommaSeparatedListOutputParser, PydanticOutputParser,
-  OutputFixingParser, RetryWithErrorOutputParser,
+  MemoryCompressor as MemoryCompressorModule,
+  LongTermMemory as LongTermMemoryModule,
+  calculateImportance as calculateMemoryImportanceFromModule,
+  updateImportanceOnAccess as updateImportanceOnAccessFromModule,
+  DEFAULT_COMPRESSION_CONFIG as DEFAULT_COMPRESSION_CONFIG_MODULE,
+} from './memory/index';
+
+export type {
+  MemoryEntry,
+  CompressionConfig,
+  CompressionResult,
+} from './memory/index';
+
+// ============================================================================
+// 向量存储抽象层（H6: BaseVectorStore 改为值导出，M8: 补充 VectorSearchResult）
+// ============================================================================
+
+export {
+  BaseVectorStore,
+  InMemoryVectorStore,
+  cosineSimilarity as vectorCosineSimilarity,
+  euclideanDistance as vectorEuclideanDistance,
+  dotProduct,
+  computeSimilarity,
+  matchesFilter,
+} from './vector-store/index';
+
+export type {
+  Embedding,
+  VectorSearchResult,
+  VectorStoreConfig,
+  MetadataFilter,
+} from './vector-store/index';
+
+// ============================================================================
+// 输出解析器（H7: BaseOutputParser 改为值导出，M19-M20: 补充缺失类型）
+// ============================================================================
+
+export {
+  BaseOutputParser,
+  StructuredOutputParser,
+  ListOutputParser,
+  CommaSeparatedListOutputParser,
+  EnumOutputParser,
+  PydanticOutputParser,
+  OutputFixingParser,
+  RetryWithErrorOutputParser,
 } from './parsers/index';
 
-export type { BaseOutputParser, StructuredField as FieldDefinition, ParseResult } from './parsers/index';
+export type {
+  StructuredField,
+  StructuredField as FieldDefinition,
+  ParseResult,
+  LLMCaller,
+  FieldValidation,
+  PydanticField,
+} from './parsers/index';
 
 // ============================================================================
-// 回调与追踪系统
-// ============================================================================
-
-export { CallbackManager, Tracer, ConsoleCallbackHandler, FileCallbackHandler } from './callbacks/index';
-export type { CallbackEvent, BaseCallbackHandler, TraceSpan } from './callbacks/index';
-
-// ============================================================================
-// 文档加载器与文本分割器
+// 回调与追踪系统（H9: BaseCallbackHandler 改为值导出，M10-M11: 补充缺失类型）
 // ============================================================================
 
 export {
-  TextLoader, JSONLoader, MarkdownLoader, CSVLoader,
-  RecursiveCharacterTextSplitter, TokenTextSplitter, MarkdownTextSplitter,
+  BaseCallbackHandler,
+  CallbackManager,
+  TraceSpan,
+  Tracer,
+  ConsoleCallbackHandler,
+  FileCallbackHandler,
+} from './callbacks/index';
+
+export type {
+  CallbackEventType,
+  CallbackEvent,
+  LLMCallbackData,
+  ToolCallbackData,
+  ChainCallbackData,
+  AgentCallbackData,
+  MemoryCallbackData,
+  TraceStats,
+  FileCallbackHandlerConfig,
+} from './callbacks/index';
+
+// ============================================================================
+// 文档加载器与文本分割器（H8: BaseDocumentLoader/BaseTextSplitter 改为值导出）
+// ============================================================================
+
+export {
+  BaseDocumentLoader,
+  BaseTextSplitter,
+  TextLoader,
+  JSONLoader,
+  MarkdownLoader,
+  CSVLoader,
+  RecursiveCharacterTextSplitter,
+  TokenTextSplitter,
+  MarkdownTextSplitter,
 } from './document-loaders/index';
 
-export type { Document, BaseDocumentLoader, BaseTextSplitter } from './document-loaders/index';
+export type {
+  Document,
+  TextChunk,
+  JSONLoaderConfig,
+  CSVLoaderConfig,
+  MarkdownHeading,
+} from './document-loaders/index';
 
 // ============================================================================
-// 多智能体协作（增强）
+// 多智能体协作（H10: BaseAgent 改为值导出，M13: 补充缺失类型）
 // ============================================================================
 
 export {
-  AgentOrchestrator,
+  AgentRole,
+  BaseAgent,
+  generateMessageId,
   AgentMessageBus,
+  AgentOrchestrator,
+  StreamingAgent,
+  SimpleAgent,
+  createResearchTeamConfigs,
+  createWritingTeamConfigs,
+  createCodingTeamConfigs,
   createResearchTeam,
   createWritingTeam,
   createCodingTeam,
-  // 新增流式 Agent
-  StreamingAgent,
-  SimpleAgent,
 } from './agents/index';
 
 export type {
@@ -293,16 +459,23 @@ export type {
   AgentConfig,
   AgentMessage,
   AgentState,
-  BaseAgent,
-  AgentRole,
-  // 新增运行时类型
+  AgentStatus,
+  AgentMessageType,
+  MessageFilter,
+  MessageSubscriptionCallback,
+  PipelineStep,
+  PipelineResult,
+  ParallelResult,
+  DebateRound,
+  DebateResult,
+  TeamTemplate,
   RuntimeConfig,
   StreamOutputCallback,
   ToolCallCallback,
 } from './agents/index';
 
 // ============================================================================
-// AI 思考能力
+// AI 思考能力（M14: 补充缺失类型）
 // ============================================================================
 
 export {
@@ -314,22 +487,21 @@ export {
   TreeOfThoughtStrategy,
 } from './thinking/index';
 
-export type { ThinkingStrategy, ThinkingResult } from './thinking/index';
-
-// ============================================================================
-// 记忆管理（新增模块）
-// ============================================================================
-
-export {
-  MemoryCompressor,
-  LongTermMemory,
-  calculateImportance,
-  updateImportanceOnAccess,
-  DEFAULT_COMPRESSION_CONFIG,
-} from './memory/index';
-
 export type {
-  MemoryEntry,
-  CompressionConfig,
-  CompressionResult,
-} from './memory/index';
+  ThinkingResult,
+  ThinkingStrategy,
+  ReflectionAssessment,
+  RefineFeedback,
+  ThoughtNode,
+  TreeOfThoughtResult,
+  TaskComplexity as ThinkingTaskComplexity,
+  CoTLanguage,
+  ChainOfThoughtConfig,
+  ReActConfig,
+  ReActStep,
+  SelfReflectionConfig,
+  SelfRefineConfig,
+  TreeOfThoughtConfig,
+  // 注意：thinking 模块有自己的 LLMConfig，用别名区分
+  LLMConfig as ThinkingLLMConfig,
+} from './thinking/index';

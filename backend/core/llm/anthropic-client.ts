@@ -52,6 +52,14 @@ export async function chatAnthropic(
       output_tokens?: number;
     };
   };
+  // 检测 stop_reason 映射为统一的 finishReason
+  const rawStopReason = (data as any).stop_reason; // 'end_turn' | 'max_tokens' | 'stop_sequence'
+  let finishReason: 'stop' | 'length' | 'tool_calls' | 'content_filter' | null = 'stop';
+  if (rawStopReason === 'max_tokens') finishReason = 'length';
+  else if (rawStopReason === 'stop_sequence') finishReason = 'stop';
+  else if (rawStopReason === 'end_turn') finishReason = 'stop';
+  else finishReason = null;
+
   return {
     content: data.content[0].text,
     model: data.model || model,
@@ -61,5 +69,7 @@ export async function chatAnthropic(
       completionTokens: data.usage?.output_tokens || 0,
       totalTokens: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0),
     },
+    hasToolCalls: false,
+    finishReason,
   };
 }

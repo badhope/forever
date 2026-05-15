@@ -15,6 +15,7 @@ import type {
   StreamWithToolsResult,
 } from './types';
 import { PROVIDERS } from './providers';
+import { logger } from '../logger';
 
 // ============================================================================
 // 基础聊天调用
@@ -344,9 +345,20 @@ interface OpenAIResponse {
 }
 
 /**
+ * OpenAI 聊天消息格式
+ */
+interface OpenAIChatMessage {
+  role: string;
+  content: string;
+  tool_calls?: ToolCall[];
+  tool_call_id?: string;
+  name?: string;
+}
+
+/**
  * 格式化消息为 OpenAI API 格式
  */
-function formatMessages(messages: ChatMessage[]): any[] {
+function formatMessages(messages: ChatMessage[]): OpenAIChatMessage[] {
   return messages.map(msg => {
     const formatted: Record<string, any> = {
       role: msg.role,
@@ -400,7 +412,7 @@ export function parseToolCallArguments(toolCall: ToolCall): Record<string, any> 
   try {
     return JSON.parse(toolCall.function.arguments);
   } catch (error) {
-    console.error('解析工具调用参数失败:', error);
+    logger.error('llm:openai-client', '解析工具调用参数失败:', error);
     return {};
   }
 }

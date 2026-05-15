@@ -11,6 +11,7 @@
 
 import type { ChatMessage } from '../llm/types';
 import { chat } from '../llm';
+import { logger } from '../logger';
 
 // ============================================================================
 // 类型定义
@@ -55,7 +56,7 @@ export interface CompressionConfig {
   /** 是否启用LLM摘要 */
   enableLLMSummarization: boolean;
   /** LLM配置（用于摘要生成） */
-  llmConfig?: any;
+  llmConfig?: import('../llm/types').LLMConfig;
 }
 
 /**
@@ -228,7 +229,7 @@ export class MemoryCompressor {
       try {
         summaryMemory = await this.generateSummary(toCompress);
       } catch (error) {
-        console.error('生成摘要失败:', error);
+        logger.error('memory:compression', '生成摘要失败:', error);
       }
     }
 
@@ -394,7 +395,7 @@ export class LongTermMemory {
     this.memories.set(entry.id, entry);
 
     // 检查是否需要压缩
-    this.checkAndCompress();
+    void this.checkAndCompress();
 
     return entry;
   }
@@ -471,7 +472,7 @@ export class LongTermMemory {
         this.memories.set(result.summaryMemory.id, result.summaryMemory);
       }
 
-      console.log(
+      logger.info('memory:compression',
         `记忆压缩完成: ${result.compressedIds.length} 条记忆被压缩，压缩率 ${(
           result.compressionRatio * 100
         ).toFixed(1)}%`
@@ -511,7 +512,7 @@ export class LongTermMemory {
     for (const entry of entries) {
       this.memories.set(entry.id, entry);
     }
-    this.checkAndCompress();
+    void this.checkAndCompress();
   }
 }
 

@@ -11,8 +11,8 @@
 export type {
   ThinkingResult,
   ThinkingStrategy,
-  ToolDefinition,
-  ToolRegistry,
+  ThinkingToolDefinition,
+  ThinkingToolRegistry,
   ReflectionAssessment,
   RefineFeedback,
   ThoughtNode,

@@ -34,7 +34,7 @@ export interface ThinkingStrategy {
 }
 
 /** 工具定义（供 ReAct 策略使用） */
-export interface ToolDefinition {
+export interface ThinkingToolDefinition {
   /** 工具名称 */
   name: string;
   /** 工具描述 */
@@ -46,11 +46,11 @@ export interface ToolDefinition {
 }
 
 /** 工具注册表（供 ReAct 策略使用） */
-export interface ToolRegistry {
+export interface ThinkingToolRegistry {
   /** 获取所有可用工具 */
-  getTools(): ToolDefinition[];
+  getTools(): ThinkingToolDefinition[];
   /** 按名称获取工具 */
-  getTool(name: string): ToolDefinition | undefined;
+  getTool(name: string): ThinkingToolDefinition | undefined;
   /** 执行指定工具 */
   executeTool(name: string, input: Record<string, any>): Promise<string>;
 }
@@ -141,7 +141,7 @@ export interface ReActConfig {
   /** LLM 配置 */
   llmConfig: LLMConfig;
   /** 工具注册表 */
-  tools: ToolRegistry;
+  tools: ThinkingToolRegistry;
   /** 最大迭代次数（默认 10） */
   maxIterations?: number;
 }
