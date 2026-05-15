@@ -15,7 +15,8 @@
  * ```
  */
 
-import type { LLMConfig } from '../llm/types.js';
+import type { LLMConfig, ChatMessage } from '../llm/types.js';
+import { chat } from '../llm/index.js';
 import type {
   ThinkingResult,
   ThinkingStrategy,
@@ -227,9 +228,27 @@ export class ReActStrategy implements ThinkingStrategy {
   }
 
   /**
-   * 调用 LLM（占位实现）
+   * 调用 LLM
+   * 
+   * 使用 Forever 的统一 LLM 适配器，支持 16+ 平台
    */
   private async callLLM(prompt: string): Promise<string> {
-    return `[ReAct LLM 响应]\n${prompt.substring(0, 100)}...\n\n思考: 分析问题\n行动: finish\n最终答案: 基于分析得出结论`;
+    const messages: ChatMessage[] = [
+      { role: 'system', content: '你是一个使用 ReAct 模式的问题解决助手。' },
+      { role: 'user', content: prompt },
+    ];
+
+    try {
+      const response = await chat(messages, this.llmConfig);
+      return response.content;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('ReAct LLM 调用失败:', errorMessage);
+      
+      // 返回一个降级响应，让 ReAct 循环可以继续
+      return `思考: 由于技术问题，我无法继续深入分析
+行动: finish
+最终答案: 抱歉，我遇到了一些技术问题。基于目前的分析，${errorMessage}`;
+    }
   }
 }
