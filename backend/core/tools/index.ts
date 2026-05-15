@@ -17,19 +17,26 @@
  * - MemoryStoreTool: 记忆存储
  * - FileReadTool: 文件读取
  * - FileWriteTool: 文件写入
+ * - BrowserTools: 网页浏览工具（Playwright）
+ * - CodeExecutionTools: 代码执行工具（Docker沙箱）
  *
  * 典型用法：
  * ```ts
  * const registry = new ToolRegistry();
  * registry.register(WebSearchTool);
  * registry.register(CalculatorTool);
+ * registry.register(browserBrowseTool);
+ * registry.register(codeExecutePythonTool);
  *
  * const executor = new ToolExecutor(registry);
  * const result = await executor.execute('calculator', { expression: '2 + 3 * 4' });
  * ```
  */
 
+// ============================================================================
 // 类型导出
+// ============================================================================
+
 export type {
   JsonSchema,
   ToolHandler,
@@ -40,13 +47,20 @@ export type {
   ToolRegistryOptions,
 } from './types';
 
+// ============================================================================
 // 核心类导出
+// ============================================================================
+
 export { SchemaValidator } from './types';
 export { ToolRegistry } from './registry';
 export { ToolExecutor } from './executor';
 
+// ============================================================================
 // 内置工具导出
+// ============================================================================
+
 export {
+  // 基础工具
   WebSearchTool,
   CalculatorTool,
   DateTimeTool,
@@ -54,5 +68,41 @@ export {
   FileWriteTool,
   createMemorySearchTool,
   createMemoryStoreTool,
+  // 浏览器工具
+  browserBrowseTool,
+  browserSearchTool,
+  browserScreenshotTool,
+  getBrowserTools,
+  registerBrowserTools,
+  type BrowseResult,
+  type SearchResult,
+  // 代码执行工具
+  codeExecuteJavascriptTool,
+  codeExecutePythonTool,
+  codeExecuteBashTool,
+  codeExecuteTool,
+  getCodeExecutionTools,
+  registerCodeExecutionTools,
+  type CodeExecutionResult,
+  type CodeExecutionConfig,
+  type SupportedLanguage,
+  // 工具注册中心工厂函数
   createDefaultToolRegistry,
+  createSafeToolRegistry,
+  createFullToolRegistry,
 } from './builtin-tools';
+
+// ============================================================================
+// 记忆压缩导出
+// ============================================================================
+
+export {
+  MemoryCompressor,
+  LongTermMemory,
+  calculateImportance,
+  updateImportanceOnAccess,
+  DEFAULT_COMPRESSION_CONFIG,
+  type MemoryEntry,
+  type CompressionConfig,
+  type CompressionResult,
+} from '../memory/compression';
