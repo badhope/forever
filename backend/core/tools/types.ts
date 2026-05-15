@@ -3,8 +3,10 @@
  * @description 工具系统的类型定义与参数验证器
  *
  * 定义工具定义、工具结果、OpenAI function calling schema 等核心类型，
- * 以及 JSON Schema 参数验证器。
+ * 以及 JSON Schema 参数验证器（内部使用 ajv 实现）。
  */
+
+import Ajv from 'ajv';
 
 // ============================================================================
 // 类型定义
@@ -91,21 +93,25 @@ export interface ToolRegistryOptions {
 }
 
 // ============================================================================
-// 参数验证
+// 参数验证（内部委托给 ajv）
 // ============================================================================
 
 /**
  * JSON Schema 参数验证器
  *
- * 提供轻量级的 JSON Schema 验证能力，支持：
+ * 提供轻量级的 JSON Schema 验证能力，内部使用 ajv 实现。
+ * 支持 JSON Schema Draft-07 规范的全部验证能力：
  * - required 字段检查
  * - type 类型检查
  * - enum 枚举检查
  * - minimum/maximum 数值范围检查
  * - minLength/maxLength 字符串长度检查
  * - pattern 正则匹配
+ * - 以及 ajv 支持的所有其他 JSON Schema 关键字
  */
 export class SchemaValidator {
+  private static ajv = new Ajv({ allErrors: true });
+
   /**
    * 验证参数是否符合 JSON Schema
    *
@@ -114,105 +120,15 @@ export class SchemaValidator {
    * @returns 验证错误列表，空数组表示验证通过
    */
   static validate(params: Record<string, any>, schema: JsonSchema): string[] {
-    const errors: string[] = [];
-    const properties = schema.properties || {};
-    const required = schema.required || [];
+    const validate = SchemaValidator.ajv.compile(schema);
+    const valid = validate(params);
 
-    // 检查必填字段
-    for (const fieldName of required) {
-      if (params[fieldName] === undefined || params[fieldName] === null) {
-        errors.push(`缺少必填参数: ${fieldName}`);
-      }
+    if (valid) {
+      return [];
     }
 
-    // 检查每个已提供参数的类型和约束
-    for (const [fieldName, value] of Object.entries(params)) {
-      if (value === undefined || value === null) continue;
-
-      const fieldSchema = properties[fieldName];
-      if (!fieldSchema) {
-        // 未在 schema 中定义的字段，跳过（宽松模式）
-        continue;
-      }
-
-      // 类型检查
-      if (fieldSchema.type) {
-        const typeError = SchemaValidator.checkType(fieldName, value, fieldSchema.type);
-        if (typeError) errors.push(typeError);
-      }
-
-      // 枚举检查
-      if (fieldSchema.enum && Array.isArray(fieldSchema.enum)) {
-        if (!fieldSchema.enum.includes(value)) {
-          errors.push(
-            `参数 ${fieldName} 的值 "${value}" 不在允许的枚举值中: [${fieldSchema.enum.join(', ')}]`,
-          );
-        }
-      }
-
-      // 数值范围检查
-      if (typeof value === 'number') {
-        if (fieldSchema.minimum !== undefined && value < fieldSchema.minimum) {
-          errors.push(`参数 ${fieldName} 的值 ${value} 小于最小值 ${fieldSchema.minimum}`);
-        }
-        if (fieldSchema.maximum !== undefined && value > fieldSchema.maximum) {
-          errors.push(`参数 ${fieldName} 的值 ${value} 大于最大值 ${fieldSchema.maximum}`);
-        }
-      }
-
-      // 字符串长度检查
-      if (typeof value === 'string') {
-        if (fieldSchema.minLength !== undefined && value.length < fieldSchema.minLength) {
-          errors.push(
-            `参数 ${fieldName} 的长度 ${value.length} 小于最小长度 ${fieldSchema.minLength}`,
-          );
-        }
-        if (fieldSchema.maxLength !== undefined && value.length > fieldSchema.maxLength) {
-          errors.push(
-            `参数 ${fieldName} 的长度 ${value.length} 超过最大长度 ${fieldSchema.maxLength}`,
-          );
-        }
-        if (fieldSchema.pattern) {
-          const regex = new RegExp(fieldSchema.pattern);
-          if (!regex.test(value)) {
-            errors.push(`参数 ${fieldName} 的值不匹配模式: ${fieldSchema.pattern}`);
-          }
-        }
-      }
-    }
-
-    return errors;
-  }
-
-  /**
-   * 检查值类型
-   */
-  private static checkType(fieldName: string, value: any, expectedType: string | string[]): string | null {
-    const types = Array.isArray(expectedType) ? expectedType : [expectedType];
-
-    for (const type of types) {
-      switch (type) {
-        case 'string':
-          if (typeof value === 'string') return null;
-          break;
-        case 'number':
-          if (typeof value === 'number' && !isNaN(value)) return null;
-          break;
-        case 'integer':
-          if (typeof value === 'number' && Number.isInteger(value)) return null;
-          break;
-        case 'boolean':
-          if (typeof value === 'boolean') return null;
-          break;
-        case 'array':
-          if (Array.isArray(value)) return null;
-          break;
-        case 'object':
-          if (typeof value === 'object' && value !== null && !Array.isArray(value)) return null;
-          break;
-      }
-    }
-
-    return `参数 ${fieldName} 的类型应为 ${types.join(' | ')}, 实际为 ${typeof value}`;
+    return (validate.errors ?? []).map(
+      (err) => `${err.instancePath || '/'} ${err.message || '验证失败'}`.trim(),
+    );
   }
 }

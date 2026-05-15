@@ -6,7 +6,11 @@
  * - LRUCache: LRU（最近最少使用）缓存
  * - TTLCache: 带过期时间的缓存
  * - MultiLevelCache: 多级缓存（L1 内存 + L2 持久化）
+ *
+ * 内部委托给 lru-cache 开源库实现
  */
+
+import { LRUCache as LRUCacheLib } from 'lru-cache';
 
 // ==================== LRU 缓存 ====================
 
@@ -25,17 +29,15 @@
  * cache.get('key'); // 42
  * ```
  */
-export class LRUCache<K, V> {
-  private cache: Map<K, V>;
-  private maxSize: number;
+export class LRUCache<K extends {}, V extends {}> {
+  private cache: LRUCacheLib<K, V>;
 
   /**
    * 创建 LRU 缓存实例
    * @param {number} maxSize - 最大缓存条目数，默认 100
    */
   constructor(maxSize: number = 100) {
-    this.cache = new Map();
-    this.maxSize = maxSize;
+    this.cache = new LRUCacheLib<K, V>({ max: maxSize });
   }
 
   /**
@@ -44,13 +46,7 @@ export class LRUCache<K, V> {
    * @returns {V | undefined} 缓存值，未命中返回 undefined
    */
   get(key: K): V | undefined {
-    const value = this.cache.get(key);
-    if (value !== undefined) {
-      // 移动到最新位置（LRU 核心：命中即刷新）
-      this.cache.delete(key);
-      this.cache.set(key, value);
-    }
-    return value;
+    return this.cache.get(key);
   }
 
   /**
@@ -59,15 +55,6 @@ export class LRUCache<K, V> {
    * @param {V} value - 缓存值
    */
   set(key: K, value: V): void {
-    if (this.cache.has(key)) {
-      this.cache.delete(key);
-    } else if (this.cache.size >= this.maxSize) {
-      // 删除最旧的条目（Map 迭代顺序中第一个即为最久未访问）
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey !== undefined) {
-        this.cache.delete(firstKey);
-      }
-    }
     this.cache.set(key, value);
   }
 
@@ -138,17 +125,23 @@ export class LRUCache<K, V> {
  * cache.set('short', 1, 5000); // 自定义 5 秒过期
  * ```
  */
-export class TTLCache<K, V> {
-  private cache: Map<K, { value: V; expires: number }>;
+export class TTLCache<K extends {}, V extends {}> {
+  private cache: LRUCacheLib<K, V>;
   private defaultTTL: number;
+  private expiryMap: Map<K, number>;
 
   /**
    * 创建 TTL 缓存实例
    * @param {number} defaultTTL - 默认过期时间（毫秒），默认 60000ms（60秒）
    */
   constructor(defaultTTL: number = 60000) {
-    this.cache = new Map();
     this.defaultTTL = defaultTTL;
+    this.expiryMap = new Map();
+    this.cache = new LRUCacheLib<K, V>({
+      max: Infinity,
+      ttl: defaultTTL,
+      noUpdateTTL: false,
+    });
   }
 
   /**
@@ -157,15 +150,12 @@ export class TTLCache<K, V> {
    * @returns {V | undefined} 缓存值，未命中或已过期返回 undefined
    */
   get(key: K): V | undefined {
-    const entry = this.cache.get(key);
-    if (!entry) return undefined;
-
-    if (entry.expires < Date.now()) {
-      this.cache.delete(key);
-      return undefined;
+    const value = this.cache.get(key);
+    if (value !== undefined) {
+      // 同步清理 expiryMap 中可能残留的过期记录
+      this.expiryMap.delete(key);
     }
-
-    return entry.value;
+    return value;
   }
 
   /**
@@ -175,8 +165,9 @@ export class TTLCache<K, V> {
    * @param {number} [ttl] - 可选的过期时间（毫秒），默认使用构造时的 defaultTTL
    */
   set(key: K, value: V, ttl?: number): void {
-    const expires = Date.now() + (ttl ?? this.defaultTTL);
-    this.cache.set(key, { value, expires });
+    const effectiveTTL = ttl ?? this.defaultTTL;
+    this.cache.set(key, value, { ttl: effectiveTTL });
+    this.expiryMap.set(key, Date.now() + effectiveTTL);
   }
 
   /**
@@ -185,13 +176,7 @@ export class TTLCache<K, V> {
    * @returns {boolean} 是否存在且未过期
    */
   has(key: K): boolean {
-    const entry = this.cache.get(key);
-    if (!entry) return false;
-    if (entry.expires < Date.now()) {
-      this.cache.delete(key);
-      return false;
-    }
-    return true;
+    return this.cache.has(key);
   }
 
   /**
@@ -200,6 +185,7 @@ export class TTLCache<K, V> {
    * @returns {boolean} 是否成功删除
    */
   delete(key: K): boolean {
+    this.expiryMap.delete(key);
     return this.cache.delete(key);
   }
 
@@ -208,6 +194,7 @@ export class TTLCache<K, V> {
    */
   clear(): void {
     this.cache.clear();
+    this.expiryMap.clear();
   }
 
   /**
@@ -217,9 +204,10 @@ export class TTLCache<K, V> {
   cleanup(): number {
     const now = Date.now();
     let count = 0;
-    for (const [key, entry] of this.cache) {
-      if (entry.expires < now) {
+    for (const [key, expires] of this.expiryMap) {
+      if (expires < now) {
         this.cache.delete(key);
+        this.expiryMap.delete(key);
         count++;
       }
     }
@@ -244,8 +232,8 @@ export class TTLCache<K, V> {
  * cache.get('key'); // 42，从 L1 命中
  * ```
  */
-export class MultiLevelCache<K, V> {
-  private l1: LRUCache<K, V>;
+export class MultiLevelCache<K extends {}, V extends {}> {
+  private l1: LRUCacheLib<K, V>;
   private l2: Map<K, V>;
   private l1Size: number;
 
@@ -254,7 +242,7 @@ export class MultiLevelCache<K, V> {
    * @param {number} l1Size - L1 缓存容量，默认 100
    */
   constructor(l1Size: number = 100) {
-    this.l1 = new LRUCache(l1Size);
+    this.l1 = new LRUCacheLib<K, V>({ max: l1Size });
     this.l2 = new Map();
     this.l1Size = l1Size;
   }

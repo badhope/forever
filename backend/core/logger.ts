@@ -1,7 +1,9 @@
 /**
  * Forever - 结构化日志系统
- * 零依赖，支持日志级别控制和结构化输出
+ * 内部委托给 pino 实现，支持日志级别控制和结构化输出
  */
+
+import pino from 'pino';
 
 export enum LogLevel {
   DEBUG = 0,
@@ -40,13 +42,80 @@ function defaultHandler(entry: LogEntry): void {
   }
 }
 
+/**
+ * 将 LogLevel 枚举值映射为 pino 的日志级别字符串
+ */
+function toPinoLevel(level: LogLevel): 'debug' | 'info' | 'warn' | 'error' | 'silent' {
+  switch (level) {
+    case LogLevel.DEBUG: return 'debug';
+    case LogLevel.INFO: return 'info';
+    case LogLevel.WARN: return 'warn';
+    case LogLevel.ERROR: return 'error';
+    case LogLevel.SILENT: return 'silent';
+  }
+}
+
+/**
+ * 将 pino 的数字级别映射回 LogLevel 枚举值
+ */
+function fromPinoLevel(level: number): LogLevel {
+  if (level <= pino.levels.values.debug) return LogLevel.DEBUG;
+  if (level <= pino.levels.values.info) return LogLevel.INFO;
+  if (level <= pino.levels.values.warn) return LogLevel.WARN;
+  if (level <= pino.levels.values.error) return LogLevel.ERROR;
+  return LogLevel.SILENT;
+}
+
+/**
+ * 将 pino 的数字级别映射为级别名称字符串
+ */
+function pinoLevelName(level: number): string {
+  if (level <= pino.levels.values.debug) return 'DEBUG';
+  if (level <= pino.levels.values.info) return 'INFO';
+  if (level <= pino.levels.values.warn) return 'WARN';
+  if (level <= pino.levels.values.error) return 'ERROR';
+  return 'SILENT';
+}
+
+/**
+ * 创建 pino 实例，根据环境选择 transport
+ */
+function createPinoInstance(): pino.Logger {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (isProduction) {
+    // 生产环境：默认 JSON 输出
+    return pino({
+      level: 'info',
+      timestamp: pino.stdTimeFunctions.isoTime,
+    });
+  }
+
+  // 开发环境：使用 pino-pretty transport 实现彩色终端输出
+  return pino({
+    level: 'debug',
+    timestamp: pino.stdTimeFunctions.isoTime,
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        translateTime: 'SYS:HH:MM:ss',
+        ignore: 'pid,hostname',
+        messageFormat: '[{module}] {msg}',
+      },
+    },
+  });
+}
+
 class Logger {
   private static level: LogLevel = LogLevel.INFO;
   private static handlers: LogHandler[] = [defaultHandler];
   private static moduleLevels: Map<string, LogLevel> = new Map();
+  private static pinoInstance: pino.Logger = createPinoInstance();
 
   static setLevel(level: LogLevel): void {
     Logger.level = level;
+    Logger.pinoInstance.level = toPinoLevel(level);
   }
 
   static setModuleLevel(module: string, level: LogLevel): void {
@@ -75,6 +144,24 @@ class Logger {
       return;
     }
 
+    // 同时输出到 pino（内部日志记录）
+    const pinoLogger = Logger.pinoInstance.child({ module });
+    switch (level) {
+      case LogLevel.DEBUG:
+        pinoLogger.debug(data !== undefined ? { data } : {}, message);
+        break;
+      case LogLevel.INFO:
+        pinoLogger.info(data !== undefined ? { data } : {}, message);
+        break;
+      case LogLevel.WARN:
+        pinoLogger.warn(data !== undefined ? { data } : {}, message);
+        break;
+      case LogLevel.ERROR:
+        pinoLogger.error(data !== undefined ? { data } : {}, message);
+        break;
+    }
+
+    // 构造 LogEntry 分发给自定义 handler
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level: levelName,
@@ -114,6 +201,9 @@ class Logger {
     warn: (msg: string, data?: unknown) => void;
     error: (msg: string, data?: unknown) => void;
   } {
+    // 创建一个绑定了 module 的 pino child logger
+    const childLogger = Logger.pinoInstance.child({ module });
+
     return {
       debug: (msg: string, data?: unknown) => Logger.debug(module, msg, data),
       info: (msg: string, data?: unknown) => Logger.info(module, msg, data),
