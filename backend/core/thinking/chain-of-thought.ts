@@ -15,6 +15,8 @@
 
 import type { LLMConfig } from '../llm/types.js';
 import type { ThinkingResult, ThinkingStrategy, CoTLanguage, ChainOfThoughtConfig } from './types';
+import type { ChatMessage } from '../llm/types.js';
+import { chat } from '../llm/index.js';
 
 /**
  * Chain-of-Thought (CoT) 思考策略
@@ -162,8 +164,16 @@ export class ChainOfThoughtStrategy implements ThinkingStrategy {
    * @returns LLM 响应
    */
   private async callLLM(prompt: string): Promise<string> {
-    // 实际实现中会调用 LLM 服务
-    // 这里返回提示本身作为占位
-    return `[CoT 推理过程]\n${prompt}\n\n[推理完成]`;
+    const messages: ChatMessage[] = [
+      { role: 'system', content: '你是一个善于逐步推理的 AI 助手。请严格按照要求的格式输出。' },
+      { role: 'user', content: prompt },
+    ];
+    try {
+      const response = await chat(messages, this.llmConfig);
+      return response.content;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`CoT LLM 调用失败: ${errorMessage}`);
+    }
   }
 }

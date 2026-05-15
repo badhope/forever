@@ -347,6 +347,7 @@ export type {
 export {
   BaseVectorStore,
   InMemoryVectorStore,
+  QdrantVectorStore,
   cosineSimilarity as vectorCosineSimilarity,
   euclideanDistance as vectorEuclideanDistance,
   dotProduct,
@@ -505,3 +506,34 @@ export type {
   // 注意：thinking 模块有自己的 LLMConfig，用别名区分
   LLMConfig as ThinkingLLMConfig,
 } from './thinking/index';
+
+// ============================================================================
+// Embedding 模型调用层（P0-2: 新增）
+// ============================================================================
+
+export {
+  embedText,
+  embedTexts,
+  detectEmbeddingConfig,
+  listEmbeddingProviders,
+  EMBEDDING_PROVIDERS,
+} from './embedding/index';
+
+export type {
+  EmbeddingConfig,
+  EmbeddingResponse,
+  EmbeddingProvider,
+} from './embedding/index';
+
+// ============================================================================
+// RAG 管线（P0-3: 新增）
+// ============================================================================
+
+export { RAGPipeline } from './rag/index';
+
+export type {
+  DocumentChunk,
+  RAGConfig,
+  RAGQueryOptions,
+  RAGResult,
+} from './rag/index';

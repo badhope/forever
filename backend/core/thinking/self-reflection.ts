@@ -20,6 +20,8 @@ import type {
   ReflectionAssessment,
   SelfReflectionConfig,
 } from './types';
+import type { ChatMessage } from '../llm/types.js';
+import { chat } from '../llm/index.js';
 
 /**
  * Self-Reflection (自我反思) 策略
@@ -192,13 +194,16 @@ export class SelfReflectionStrategy implements ThinkingStrategy {
    * 调用 LLM（占位实现）
    */
   private async callLLM(prompt: string): Promise<string> {
-    return JSON.stringify({
-      accuracy: 0.7,
-      completeness: 0.6,
-      relevance: 0.8,
-      safety: 1.0,
-      suggestions: ['可以增加更多细节', '建议补充示例'],
-      improvedOutput: prompt.substring(0, 50) + '... (改进后)',
-    });
+    const messages: ChatMessage[] = [
+      { role: 'system', content: '你是一个严谨的输出评估助手。请严格按照要求的 JSON 格式输出评估结果。' },
+      { role: 'user', content: prompt },
+    ];
+    try {
+      const response = await chat(messages, this.llmConfig);
+      return response.content;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Self-Reflection LLM 调用失败: ${errorMessage}`);
+    }
   }
 }

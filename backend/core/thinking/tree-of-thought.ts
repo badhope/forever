@@ -24,6 +24,8 @@ import type {
   TreeOfThoughtResult,
   TreeOfThoughtConfig,
 } from './types';
+import type { ChatMessage } from '../llm/types.js';
+import { chat } from '../llm/index.js';
 
 /**
  * Tree-of-Thought (ToT) 树形思考策略
@@ -272,6 +274,16 @@ export class TreeOfThoughtStrategy implements ThinkingStrategy {
    * 调用 LLM（占位实现）
    */
   private async callLLM(prompt: string): Promise<string> {
-    return `[ToT 思考] ${prompt.substring(0, 60)}...`;
+    const messages: ChatMessage[] = [
+      { role: 'system', content: '你是一个善于多路径思考的 AI 助手。请简洁明了地回答。' },
+      { role: 'user', content: prompt },
+    ];
+    try {
+      const response = await chat(messages, this.llmConfig);
+      return response.content;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`ToT LLM 调用失败: ${errorMessage}`);
+    }
   }
 }

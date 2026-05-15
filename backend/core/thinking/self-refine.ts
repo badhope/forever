@@ -23,6 +23,8 @@ import type {
   RefineFeedback,
   SelfRefineConfig,
 } from './types';
+import type { ChatMessage } from '../llm/types.js';
+import { chat } from '../llm/index.js';
 
 /**
  * Self-Refine (自我精炼) 策略
@@ -219,6 +221,16 @@ export class SelfRefineStrategy implements ThinkingStrategy {
    * 调用 LLM（占位实现）
    */
   private async callLLM(prompt: string): Promise<string> {
-    return `[Self-Refine LLM 响应] 基于: ${prompt.substring(0, 80)}...`;
+    const messages: ChatMessage[] = [
+      { role: 'system', content: '你是一个高质量内容创作助手。请根据反馈持续改进你的输出。' },
+      { role: 'user', content: prompt },
+    ];
+    try {
+      const response = await chat(messages, this.llmConfig);
+      return response.content;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Self-Refine LLM 调用失败: ${errorMessage}`);
+    }
   }
 }

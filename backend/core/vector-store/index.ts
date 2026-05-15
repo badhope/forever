@@ -30,3 +30,6 @@ export {
 
 // 内存实现
 export { InMemoryVectorStore } from './memory';
+
+// Qdrant 持久化实现
+export { QdrantVectorStore } from './qdrant';
