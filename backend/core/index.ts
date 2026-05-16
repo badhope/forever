@@ -453,6 +453,13 @@ export {
   createResearchTeam,
   createWritingTeam,
   createCodingTeam,
+  // P1 新增
+  HandoffManager,
+  AgentSession,
+  GuardrailPipeline,
+  createDefaultGuardrailPipeline,
+  MCPClient,
+  AgentGraph,
 } from './agents/index';
 
 export type {
@@ -473,6 +480,30 @@ export type {
   RuntimeConfig,
   StreamOutputCallback,
   ToolCallCallback,
+  // P1 新增
+  HandoffRule,
+  HandoffCondition,
+  HandoffEvent,
+  HandoffResult,
+  HandoffListener,
+  SessionConfig,
+  SessionMetadata,
+  GuardrailResult,
+  GuardrailPipelineResult,
+  GuardrailAction,
+  GuardrailCheckConfig,
+  GuardrailPipelineConfig,
+  MCPServerConfig,
+  MCPTool,
+  MCPToolResult,
+  MCPConnectionStatus,
+  NodeProcessor,
+  ConditionalRouter,
+  GraphState,
+  GraphNodeDefinition,
+  GraphEdgeDefinition,
+  ConditionalEdgeDefinition,
+  GraphExecutionResult,
 } from './agents/index';
 
 // ============================================================================
