@@ -1,0 +1,24 @@
+{
+  "name": "@forever/plugin-voice-chatterbox",
+  "version": "1.0.0",
+  "description": "Chatterbox TTS plugin for Forever",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@forever/core": "workspace:*"
+  },
+  "optionalDependencies": {
+    "chatterbox-tts": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  },
+  "keywords": ["forever", "plugin", "tts", "voice"],
+  "license": "MIT"
+}

@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build output
+dist/
+*.js.map
+*.d.ts.map
+frontend/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Local development
+.trae/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+secrets/
+
+# Data
+data/
+memories/
+*.wav
+*.mp4
+*.mp3
+
+# Temporary
+/tmp/
+*.tmp
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+
+# External deps (downloaded separately)
+forever-deps/

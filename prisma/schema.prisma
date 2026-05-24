@@ -1,0 +1,131 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Agent 模型
+model Agent {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  version     String
+  capabilities String[]
+  status      AgentStatus @default(IDLE)
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  tasks       Task[]
+  messages    Message[]
+}
+
+enum AgentStatus {
+  IDLE
+  BUSY
+  ERROR
+  OFFLINE
+}
+
+// Task 模型
+model Task {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  input         Json
+  output        Json?
+  status        TaskStatus @default(PENDING)
+  error         String?
+  assignedAgent String?
+  parentTaskId  String?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  startedAt     DateTime?
+  completedAt   DateTime?
+  
+  agent         Agent? @relation(fields: [assignedAgent], references: [id])
+  parentTask    Task? @relation("TaskHierarchy", fields: [parentTaskId], references: [id])
+  subtasks      Task[] @relation("TaskHierarchy")
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// Message 模型
+model Message {
+  id          String       @id @default(uuid())
+  type        MessageType
+  from        String
+  to          String
+  content     Json
+  metadata    Json?
+  timestamp   DateTime     @default(now())
+  
+  agent       Agent? @relation(fields: [from], references: [id])
+}
+
+enum MessageType {
+  REQUEST
+  RESPONSE
+  NOTIFICATION
+  TASK
+  RESULT
+  ERROR
+  HANDOFF
+  BROADCAST
+}
+
+// Knowledge 模型（知识库）
+model Knowledge {
+  id          String      @id @default(uuid())
+  content     String
+  embedding   Float[]?
+  metadata    Json        @default("{}")
+  source      String?
+  category    String?
+  tags        String[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  @@index([category])
+  @@index([tags])
+}
+
+// Session 模型
+model Session {
+  id          String      @id @default(uuid())
+  userId      String
+  agentId     String
+  context     Json
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  expiresAt   DateTime?
+  
+  @@index([userId])
+  @@index([agentId])
+}
+
+// Audit Log 模型
+model AuditLog {
+  id          String      @id @default(uuid())
+  action      String
+  actor       String
+  target      String
+  details     Json?
+  ipAddress   String?
+  timestamp   DateTime    @default(now())
+  
+  @@index([actor])
+  @@index([timestamp])
+}
+

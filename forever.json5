@@ -1,0 +1,13 @@
+{
+  gateway: {},
+  agents: {},
+  channels: {},
+  sessions: {},
+  tools: {},
+  memory: {},
+  plugins: {},
+  logging: {},
+  security: {},
+  health: {},
+  cron: {},
+}

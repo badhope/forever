@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./backend/core"
+  },
+  "include": ["backend/core/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "packages",
+    "forever-deps",
+    "examples",
+    "apps",
+    "backend/examples",
+    "backend/core/vector-store/qdrant.ts",
+    "backend/core/tools/builtin-browser.ts",
+    "backend/core/tools/builtin-code-execution.ts"
+  ]
+}

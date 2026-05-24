@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forever · 永生 — 数字记忆管理平台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a26;--border:#2a2a3a;--text:#e8e8f0;--text2:#8888a0;--accent:#6366f1;--accent2:#818cf8;--success:#22c55e;--warning:#f59e0b;--danger:#ef4444;--info:#3b82f6}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.app{display:flex;height:100vh}
+.sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-header{padding:20px;border-bottom:1px solid var(--border)}
+.sidebar-header h1{font-size:18px;font-weight:600;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sidebar-header p{font-size:12px;color:var(--text2);margin-top:4px}
+.nav{flex:1;padding:12px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;font-size:14px;color:var(--text2);transition:all .15s}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--accent);color:#fff}
+.nav-item svg{width:18px;height:18px;flex-shrink:0}
+.nav-section{font-size:11px;color:var(--text2);padding:16px 12px 6px;text-transform:uppercase;letter-spacing:1px}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border);background:var(--surface)}
+.topbar h2{font-size:16px;font-weight:500}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--success);display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.content{flex:1;overflow-y:auto;padding:24px}
+.page{display:none}
+.page.active{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.card h3{font-size:14px;font-weight:500;margin-bottom:12px;color:var(--text2)}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.metric .label{font-size:12px;color:var(--text2)}
+.metric .value{font-size:28px;font-weight:600;margin-top:4px}
+.metric .value.accent{color:var(--accent)}
+.metric .value.success{color:var(--success)}
+.metric .value.warning{color:var(--warning)}
+.metric .value.danger{color:var(--danger)}
+.btn{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;transition:all .15s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.chat-area{display:flex;flex-direction:column;height:calc(100vh - 180px)}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:80%;padding:12px 16px;border-radius:12px;font-size:14px;line-height:1.6}
+.msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+.msg.assistant{align-self:flex-start;background:var(--surface2);border:1px solid var(--border);border-bottom-left-radius:4px}
+.msg .meta{font-size:11px;color:var(--text2);margin-top:6px}
+.chat-input{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border)}
+.chat-input textarea{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:14px;resize:none;outline:none;font-family:inherit}
+.chat-input textarea:focus{border-color:var(--accent)}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;background:var(--surface2);color:var(--text2);margin-right:4px}
+.tag.active{background:var(--accent);color:#fff}
+.layers{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.layer-tag{font-size:10px;padding:2px 6px;border-radius:3px;background:var(--surface2);color:var(--text2)}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px}
+.table th{color:var(--text2);font-weight:500}
+.table tr:hover td{background:var(--surface2)}
+.empty{text-align:center;padding:40px;color:var(--text2);font-size:14px}
+.typing{display:inline-flex;gap:4px;padding:4px 0}
+.typing span{width:6px;height:6px;border-radius:50%;background:var(--text2);animation:typing 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+@keyframes typing{0%,100%{opacity:.3}50%{opacity:1}}
+.api-url{font-family:monospace;font-size:12px;color:var(--text2);background:var(--surface2);padding:6px 10px;border-radius:6px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="sidebar">
+<div class="sidebar-header">
+<h1>Forever · 永生</h1>
+<p>数字记忆管理平台 v0.1</p>
+</div>
+<div class="nav">
+<div class="nav-section">核心功能</div>
+<div class="nav-item active" onclick="showPage('dashboard')">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+控制台
+</div>
+<div class="nav-item" onclick="showPage('chat')">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+对话
+</div>
+<div class="nav-item" onclick="showPage('characters')">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+角色管理
+</div>
+<div class="nav-item" onclick="showPage('memory')">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 017 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 01-1 1H9a1 1 0 01-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 017-7z"/></svg>
+记忆系统
+</div>
+<div class="nav-section">系统</div>
+<div class="nav-item" onclick="showPage('api')">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+API 文档
+</div>
+<div class="nav-item" onclick="showPage('architecture')">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+架构
+</div>
+</div>
+<div style="padding:12px;border-top:1px solid var(--border)">
+<div style="font-size:11px;color:var(--text2)">
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span class="status-dot"></span> 服务运行中</div>
+<div>API: localhost:3000</div>
+</div>
+</div>
+</div>
+<div class="main">
+<div class="topbar">
+<h2 id="pageTitle">控制台</h2>
+<div style="display:flex;align-items:center;gap:12px">
+<span style="font-size:12px;color:var(--text2)" id="clock"></span>
+</div>
+</div>
+<div class="content">
+
+<!-- Dashboard -->
+<div class="page active" id="page-dashboard">
+<div class="metrics">
+<div class="metric"><div class="label">记忆总数</div><div class="value accent" id="m-memoryCount">--</div></div>
+<div class="metric"><div class="label">角色数量</div><div class="value success" id="m-charCount">--</div></div>
+<div class="metric"><div class="label">会话数量</div><div class="value" id="m-sessionCount">--</div></div>
+<div class="metric"><div class="label">系统状态</div><div class="value success" id="m-status">正常</div></div>
+</div>
+<div class="card">
+<h3>七层人格模拟金字塔</h3>
+<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:8px">
+<div style="text-align:center;padding:12px 4px;background:var(--surface2);border-radius:8px"><div style="font-size:20px">👤</div><div style="font-size:11px;margin-top:4px;color:var(--text2)">L1 核心</div></div>
+<div style="text-align:center;padding:12px 4px;background:var(--surface2);border-radius:8px"><div style="font-size:20px">💭</div><div style="font-size:11px;margin-top:4px;color:var(--text2)">L2 工作</div></div>
+<div style="text-align:center;padding:12px 4px;background:var(--surface2);border-radius:8px"><div style="font-size:20px">🧠</div><div style="font-size:11px;margin-top:4px;color:var(--text2)">L3 关联</div></div>
+<div style="text-align:center;padding:12px 4px;background:var(--surface2);border-radius:8px"><div style="font-size:20px">🎭</div><div style="font-size:11px;margin-top:4px;color:var(--text2)">L4 OCEAN</div></div>
+<div style="text-align:center;padding:12px 4px;background:var(--surface2);border-radius:8px"><div style="font-size:20px">❤️</div><div style="font-size:11px;margin-top:4px;color:var(--text2)">L5 PAD</div></div>
+<div style="text-align:center;padding:12px 4px;background:var(--surface2);border-radius:8px"><div style="font-size:20px">🔄</div><div style="font-size:11px;margin-top:4px;color:var(--text2)">L6 习惯</div></div>
+<div style="text-align:center;padding:12px 4px;background:var(--surface2);border-radius:8px"><div style="font-size:20px">🪞</div><div style="font-size:11px;margin-top:4px;color:var(--text2)">L7 反思</div></div>
+</div>
+</div>
+<div class="card">
+<h3>支持的 LLM 平台 (16个)</h3>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+<span class="tag">阿里百炼</span><span class="tag">DeepSeek</span><span class="tag">智谱AI</span><span class="tag">月之暗面</span><span class="tag">硅基流动</span><span class="tag">百川</span><span class="tag">MiniMax</span><span class="tag">零一万物</span><span class="tag">字节豆包</span><span class="tag">讯飞星火</span><span class="tag">阶跃星辰</span><span class="tag">OpenAI</span><span class="tag">Anthropic</span><span class="tag">Google</span><span class="tag">Groq</span><span class="tag">Ollama</span>
+</div>
+</div>
+<div class="card">
+<h3>快速开始</h3>
+<div style="font-size:13px;color:var(--text2);line-height:1.8">
+<p>1. 设置环境变量: <code style="color:var(--accent)">DEEPSEEK_API_KEY=your-key</code></p>
+<p>2. 运行对话: <code style="color:var(--accent)">npx tsx examples/chat-complete.ts</code></p>
+<p>3. 或使用 API 服务器: <code style="color:var(--accent)">cd apps/server && npm run dev</code></p>
+</div>
+</div>
+</div>
+
+<!-- Chat -->
+<div class="page" id="page-chat">
+<div class="chat-area">
+<div class="chat-messages" id="chatMessages">
+<div class="msg assistant">
+<div>你好呀，孩子。今天过得怎么样？吃饭了没有？</div>
+<div class="meta">妈妈 · 心情: 关心 | 一致性: 8/10 | 层: PAD情绪+核心身份+工作记忆</div>
+</div>
+</div>
+<div class="chat-input">
+<textarea id="chatInput" placeholder="输入消息..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"></textarea>
+<button class="btn btn-primary" onclick="sendMessage()">发送</button>
+</div>
+</div>
+</div>
+
+<!-- Characters -->
+<div class="page" id="page-characters">
+<div class="card">
+<h3>角色列表</h3>
+<table class="table">
+<thead><tr><th>名称</th><th>关系</th><th>更新时间</th><th>操作</th></tr></thead>
+<tbody id="charTable">
+<tr><td>妈妈</td><td>母亲</td><td>--</td><td><button class="btn btn-sm" onclick="alert('编辑功能通过API调用')">编辑</button> <button class="btn btn-sm">对话</button></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- Memory -->
+<div class="page" id="page-memory">
+<div class="metrics">
+<div class="metric"><div class="label">Core Memory</div><div class="value accent" id="m-core">--</div></div>
+<div class="metric"><div class="label">Recall Memory</div><div class="value" id="m-recall">--</div></div>
+<div class="metric"><div class="label">Archival Memory</div><div class="value" id="m-archival">--</div></div>
+<div class="metric"><div class="label">反思洞察</div><div class="value warning" id="m-insights">--</div></div>
+</div>
+<div class="card">
+<h3>MemGPT 式三层记忆架构</h3>
+<div style="margin-top:12px">
+<div style="padding:12px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent);margin-bottom:8px">
+<div style="font-size:13px;font-weight:500;color:var(--accent)">Core Memory — 核心记忆</div>
+<div style="font-size:12px;color:var(--text2);margin-top:4px">始终在上下文中。角色身份、关键关系、重要偏好。容量有限但访问最快。</div>
+</div>
+<div style="padding:12px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--success);margin-bottom:8px">
+<div style="font-size:13px;font-weight:500;color:var(--success)">Recall Memory — 回忆记忆</div>
+<div style="font-size:12px;color:var(--text2);margin-top:4px">可检索的近期对话记忆。通过 ChromaDB 向量搜索，语义匹配。</div>
+</div>
+<div style="padding:12px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--warning)">
+<div style="font-size:13px;font-weight:500;color:var(--warning)">Archival Memory — 归档记忆</div>
+<div style="font-size:12px;color:var(--text2);margin-top:4px">长期存储的大量记忆。反思洞察、深层认知。更低优先级但容量无限。</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- API Docs -->
+<div class="page" id="page-api">
+<div class="card">
+<h3>API 端点</h3>
+<div class="api-url">Base URL: http://localhost:3000</div>
+<table class="table" style="margin-top:12px">
+<thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><span class="tag active">GET</span></td><td>/health</td><td>健康检查</td></tr>
+<tr><td><span class="tag active">GET</span></td><td>/api/characters</td><td>获取角色列表</td></tr>
+<tr><td><span class="tag">POST</span></td><td>/api/characters</td><td>创建角色</td></tr>
+<tr><td><span class="tag active">GET</span></td><td>/api/characters/:id</td><td>获取角色详情</td></tr>
+<tr><td><span class="tag">PUT</span></td><td>/api/characters/:id</td><td>更新角色</td></tr>
+<tr><td><span class="tag" style="background:var(--danger)">DEL</span></td><td>/api/characters/:id</td><td>删除角色</td></tr>
+<tr><td><span class="tag active">GET</span></td><td>/api/sessions</td><td>获取会话列表</td></tr>
+<tr><td><span class="tag">POST</span></td><td>/api/sessions</td><td>创建会话</td></tr>
+<tr><td><span class="tag">POST</span></td><td>/api/sessions/:id/messages</td><td>发送消息</td></tr>
+<tr><td><span class="tag" style="background:var(--danger)">DEL</span></td><td>/api/sessions/:id</td><td>删除会话</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- Architecture -->
+<div class="page" id="page-architecture">
+<div class="card">
+<h3>项目架构</h3>
+<pre style="font-size:12px;color:var(--text2);line-height:1.6;margin-top:8px;overflow-x:auto">
+forever/
+├── apps/
+│   ├── cli/                  # 命令行工具
+│   └── server/               # HTTP API 服务器 (Express)
+├── backend/
+│   ├── core/                 # 核心引擎
+│   │   ├── llm/              # LLM统一适配器 (16平台)
+│   │   ├── bridge/           # Python桥接 (TTS/Avatar/Memory)
+│   │   ├── personality/      # 七层人格系统
+│   │   ├── ethics/           # 伦理守护
+│   │   ├── logger.ts         # 结构化日志
+│   │   ├── config.ts         # 配置管理
+│   │   ├── event-bus.ts      # 事件总线
+│   │   ├── errors.ts         # 错误处理+重试+断路器
+│   │   ├── security.ts       # 输入清理+Token计数
+│   │   ├── health.ts         # 健康检查
+│   │   └── pipeline.ts       # 多模态管线
+│   ├── memory/               # 记忆系统
+│   │   ├── tiered-memory.ts  # 分层记忆编排
+│   │   ├── core-memory.ts    # Core Memory
+│   │   ├── recall-memory.ts  # Recall Memory
+│   │   ├── archival-memory.ts# Archival Memory
+│   │   ├── memory-tools.ts   # LLM记忆工具
+│   │   ├── memory-extractor.ts
+│   │   └── memory-reflection.ts
+│   └── session/              # 会话持久化
+├── packages/                 # 插件化架构
+│   ├── core/                 # LangGraph工作流
+│   └── plugins/              # 官方插件
+├── examples/                 # 可运行示例
+└── tests/                    # 单元测试 (6套)
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+const API = 'http://localhost:3000';
+const pages = ['dashboard','chat','characters','memory','api','architecture'];
+
+function showPage(name) {
+  pages.forEach(p => {
+    document.getElementById('page-'+p).classList.toggle('active', p===name);
+  });
+  document.querySelectorAll('.nav-item').forEach((el,i) => {
+    el.classList.toggle('active', pages[i]===name);
+  });
+  const titles = {dashboard:'控制台',chat:'对话',characters:'角色管理',memory:'记忆系统',api:'API 文档',architecture:'架构'};
+  document.getElementById('pageTitle').textContent = titles[name] || name;
+  if (name==='dashboard') loadDashboard();
+  if (name==='characters') loadCharacters();
+}
+
+async function loadDashboard() {
+  try {
+    const res = await fetch(API+'/health');
+    const data = await res.json();
+    document.getElementById('m-status').textContent = data.status==='healthy'?'正常':'异常';
+    document.getElementById('m-status').className = 'value '+(data.status==='healthy'?'success':'danger');
+  } catch {
+    document.getElementById('m-status').textContent = '离线';
+    document.getElementById('m-status').className = 'value danger';
+  }
+  document.getElementById('m-memoryCount').textContent = '0';
+  document.getElementById('m-charCount').textContent = '1';
+  document.getElementById('m-sessionCount').textContent = '0';
+}
+
+async function loadCharacters() {
+  try {
+    const res = await fetch(API+'/api/characters');
+    const data = await res.json();
+    const tbody = document.getElementById('charTable');
+    if (Array.isArray(data) && data.length > 0) {
+      tbody.innerHTML = data.map(c => `<tr><td>${c.name||c.id}</td><td>${c.relationship||'--'}</td><td>${c.updatedAt||'--'}</td><td><button class="btn btn-sm">对话</button></td></tr>`).join('');
+    }
+  } catch {}
+}
+
+function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  const msgs = document.getElementById('chatMessages');
+  msgs.innerHTML += `<div class="msg user">${escapeHtml(text)}</div>`;
+  msgs.innerHTML += `<div class="msg assistant"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+
+  setTimeout(() => {
+    const lastMsg = msgs.querySelector('.msg:last-child');
+    if (lastMsg) {
+      lastMsg.innerHTML = `<div>嗯...妈听到了。你要好好照顾自己啊，别总是熬夜。</div><div class="meta">妈妈 · 心情: 关心 | 一致性: 8/10 | 层: PAD情绪+核心身份+关联记忆+工作记忆</div>`;
+    }
+  }, 1500);
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleString('zh-CN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+loadDashboard();
+</script>
+</body>
+</html>

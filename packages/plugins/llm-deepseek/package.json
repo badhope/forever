@@ -1,0 +1,21 @@
+{
+  "name": "@forever/plugin-llm-deepseek",
+  "version": "1.0.0",
+  "description": "DeepSeek LLM plugin for Forever",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@forever/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  },
+  "keywords": ["forever", "plugin", "llm", "deepseek"],
+  "license": "MIT"
+}
