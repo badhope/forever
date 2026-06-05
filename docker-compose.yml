@@ -7,9 +7,9 @@ services:
     image: postgres:15-alpine
     container_name: forever-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: forever_ai
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-forever_ai}
     ports:
       - "5432:5432"
     volumes:
@@ -66,7 +66,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3000
-      - DATABASE_URL=postgresql://[REDACTED]@postgres:5432/forever_ai?schema=public
+      - DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-forever_ai}?schema=public
       - VECTOR_DB_PROVIDER=qdrant
       - VECTOR_DB_URL=http://qdrant:6333
       - VECTOR_COLLECTION=forever_knowledge
