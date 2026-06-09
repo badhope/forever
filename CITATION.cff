@@ -7,7 +7,6 @@ authors:
   - family-names: badhope
     given-names: badhope
     alias: badhope
-    orcid: https://orcid.org/0000-0000-0000-0000
 identifiers:
   - type: url
     value: https://github.com/badhope/forever
@@ -16,6 +15,15 @@ type: software
 url: https://github.com/badhope/forever
 repository-code: https://github.com/badhope/forever
 keywords:
-  - open-source, software
+  - digital-legacy
+  - typescript
+  - ai
+  - big-five
+  - chatterbox
+  - chinese-nlp
+  - deepseek
+  - digital-immortality
+  - generative-agents
+  - langgraph
 abstract: >-
-  Forever — a TypeScript-native AI Agent framework for digital legacy and emotional companionship. Multi-agent orchestration, unified LLM adapter for 16+ platforms, 5 thinking strategies, RAG pipeline, MCP support, graph-based workflow engine, and safety guardrails.
+  Forever — a TypeScript AI agent framework aimed at digital legacy and emotional companions. 16+ LLM adapters, 5 thinking strategies, RAG, MCP, graph workflow, safety guardrails. The 'Forever' name is half-joke, half-ambition.
