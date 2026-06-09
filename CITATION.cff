@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software in academic work, please cite it using the
+  metadata below.
+title: forever
+authors:
+  - family-names: badhope
+    given-names: badhope
+    alias: badhope
+    orcid: https://orcid.org/0000-0000-0000-0000
+identifiers:
+  - type: url
+    value: https://github.com/badhope/forever
+license: MIT
+type: software
+url: https://github.com/badhope/forever
+repository-code: https://github.com/badhope/forever
+keywords:
+  - open-source, software
+abstract: >-
+  Forever — a TypeScript-native AI Agent framework for digital legacy and emotional companionship. Multi-agent orchestration, unified LLM adapter for 16+ platforms, 5 thinking strategies, RAG pipeline, MCP support, graph-based workflow engine, and safety guardrails.
