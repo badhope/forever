@@ -1,132 +1,35 @@
-# Security Policy
+# Security
 
-> **Your data is sacred. We protect it.**
+Found a hole? **Don't file a public issue.** Open a private security
+advisory or email me (the address is in `CITATION.cff` if there's one;
+otherwise it's on my profile page). I prefer the advisory form because
+GitHub handles the disclosure timeline.
 
----
+What I'll do:
 
-## Supported Versions
+- Reply within 3 business days.
+- Triage and try to reproduce within 10 business days.
+- Ship a fix, or at least a documented mitigation, as soon as I can.
+- Credit you in the advisory if you want it. Say "anonymous" if you don't.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 2.x.x   | ✅ Active Support   |
-| 1.x.x   | ⚠️ Security Only    |
-| < 1.0   | ❌ End of Life      |
+I follow responsible disclosure: please keep the report private until I
+publish a fix and (if needed) a CVE / advisory. I won't sue you for
+security research done in good faith, and I won't go after security
+researchers for things that are obviously bugs.
 
----
+## What I patch
 
-## Reporting a Vulnerability
+Only the latest commit on `main`. I don't backport. If you're on an
+older version, the right fix is to upgrade.
 
-If you discover a security vulnerability, please report it responsibly:
+## In scope
 
-1. **Do NOT** create a public GitHub issue
-2. Send a private security report via [GitHub Security Advisories](https://github.com/badhope/forever/security/advisories/new)
-3. Allow 48 hours for initial response
-4. Provide detailed information about the vulnerability
+- Code in this repository.
+- Official container images and release artifacts that came from this
+  repo (when they exist).
 
-We will:
-- Acknowledge receipt within 48 hours
-- Provide an estimated timeline for a fix
-- Credit you in the security advisory (if desired)
-- Keep you informed throughout the resolution process
+## Out of scope
 
----
-
-## Data Security Principles
-
-### Local-First Architecture
-
-- **No cloud dependency**: All processing happens locally by default
-- **Your data stays yours**: Memories never leave your machine unless you choose
-- **No telemetry**: We don't collect any usage data
-- **No account required**: Use it anonymously
-
-### API Key Handling
-
-```bash
-# Environment variables are NEVER logged
-# Keys are stored locally in .env (gitignored)
-# Never commit API keys to version control
-```
-
-### Memory Data Protection
-
-- Memories stored in `~/.forever/` directory
-- Session data encrypted at rest (optional, see Configuration)
-- No third-party data sharing
-- Complete data deletion capability
-
----
-
-## Configuration
-
-### Enable Encrypted Storage
-
-```bash
-export FOREVER_ENCRYPT_STORAGE=true
-export FOREVER_STORAGE_KEY="your-secure-key"
-```
-
-### Disable Network Features
-
-```bash
-export FOREVER_OFFLINE_MODE=true
-```
-
----
-
-## Security Checklist
-
-- [ ] Use environment variables for all secrets
-- [ ] Add `.env` to `.gitignore`
-- [ ] Enable storage encryption for sensitive memories
-- [ ] Regularly rotate API keys
-- [ ] Review memory data before sharing
-- [ ] Use offline mode when possible
-
----
-
-## Dependency Security
-
-We regularly update dependencies to patch known vulnerabilities:
-
-```bash
-# Check for vulnerabilities
-npm audit
-
-# Update dependencies
-npm update
-```
-
----
-
-## Responsible AI Use
-
-This project includes ethical safeguards:
-
-1. **Guardian Ethics System**: Detects potential emotional manipulation
-2. **72-Hour Cooling Period**: Prevents unhealthy attachment patterns
-3. **Dependency Monitoring**: Warns when conversations become excessive
-4. **Crisis Intervention**: Detects and responds to distress signals
-
----
-
-## Incident Response
-
-In case of a security incident:
-
-1. We will notify affected users within 72 hours
-2. Provide a detailed incident report
-3. Release patches as quickly as possible
-4. Cooperate with relevant authorities if required
-
----
-
-## Contact
-
-- **Security Issues**: Use [Private Vulnerability Reporting](https://github.com/badhope/forever/security/advisories/new)
-- **General Questions**: Open a discussion
-
----
-
-> "Privacy is not an option, and it shouldn't be the price we accept for just getting on the Internet."
-> — Gary Kovacs
+- Third-party dependencies. Report upstream unless I pinned and shipped
+  a vulnerable version myself.
+- Scanners, social engineering, DoS, or "you used a default port".

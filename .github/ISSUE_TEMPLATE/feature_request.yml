@@ -1,54 +1,55 @@
-name: ✨ Feature Request
-description: Suggest a new feature or improvement
-title: "[Feature] "
-labels: ["enhancement"]
+name: Feature Request
+description: Suggest a new feature or improvement.
+title: "[feat]: "
+labels: ["enhancement", "triage"]
 assignees: []
+
 body:
   - type: markdown
     attributes:
       value: |
-        ## ✨ Feature Request
-
-        We love your ideas! Please describe the feature you'd like to see.
+        Describe the **problem** first, then the proposed **solution**.
+        The "why" matters more than the "how".
 
   - type: textarea
     id: problem
     attributes:
-      label: 🎯 Problem Statement
-      description: What problem does this feature solve?
-      placeholder: Describe the problem or pain point...
+      label: The problem
+      description: What's painful? What can't you do today?
+      placeholder: "Right now I have to ...; this is annoying because ..."
     validations:
       required: true
 
   - type: textarea
     id: solution
     attributes:
-      label: 💡 Proposed Solution
-      description: How should this feature work?
-      placeholder: Describe your proposed solution...
+      label: What I want
+      description: The feature, change, or improvement.
     validations:
       required: true
 
   - type: textarea
     id: alternatives
     attributes:
-      label: 🔄 Alternatives
-      description: Any alternative solutions you've considered?
-      placeholder: Describe alternatives...
+      label: What I tried / considered
+    validations:
+      required: false
 
   - type: textarea
-    id: context
+    id: scope
     attributes:
-      label: 📎 Additional Context
-      description: Any other context about the feature request?
-      placeholder: Add any other context...
+      label: Scope
+      description: Does this change user-facing behavior, the API, the data model, or the build? Any backward-compat risk?
+    validations:
+      required: false
 
-  - type: checkboxes
-    id: terms
+  - type: dropdown
+    id: willingness
     attributes:
-      label: ✅ I have
+      label: My willingness
       options:
-        - label: Searched for existing feature requests
-          required: true
-        - label: This is a unique feature request
-          required: true
+        - I'd send a PR for this
+        - I can help test / review
+        - I can only describe the use case
+    validations:
+      required: false
