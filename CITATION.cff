@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software in academic work, please cite it using the
+  metadata below.
+title: forever
+authors:
+  - family-names: badhope
+    given-names: badhope
+    alias: badhope
+identifiers:
+  - type: url
+    value: https://github.com/badhope/forever
+license: MIT
+type: software
+url: https://github.com/badhope/forever
+repository-code: https://github.com/badhope/forever
+keywords:
+  - digital-legacy
+  - typescript
+  - ai
+  - big-five
+  - chatterbox
+  - chinese-nlp
+  - deepseek
+  - digital-immortality
+  - generative-agents
+  - langgraph
+abstract: >-
+  Forever — a TypeScript agent framework I built because I kept rebuilding the same pieces for different projects. 16+ LLM adapters, RAG, MCP, a workflow graph, the usual suspects. The name is half joke, half ambition; the codebase is more honest than the name.
