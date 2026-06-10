@@ -79,21 +79,21 @@
     "vitest": "^1.6.0"
   },
   "dependencies": {
-    "@prisma/client": "^5.0.0",
+    "@prisma/client": "^7.8.0",
     "ajv": "^8.20.0",
     "chokidar": "^5.0.0",
-    "dotenv": "^16.4.0",
+    "dotenv": "^17.4.2",
     "eventemitter3": "^5.0.0",
-    "express": "^4.18.0",
-    "file-type": "^19.0.0",
+    "express": "^5.2.1",
+    "file-type": "^22.0.1",
     "json5": "^2.2.3",
-    "lru-cache": "^10.0.0",
-    "opossum": "^8.0.0",
-    "pino": "^9.0.0",
-    "pino-pretty": "^11.0.0",
+    "lru-cache": "^11.5.1",
+    "opossum": "^9.0.0",
+    "pino": "^10.3.1",
+    "pino-pretty": "^13.1.3",
     "retry": "^0.13.1",
-    "uuid": "^10.0.0",
+    "uuid": "^14.0.0",
     "ws": "^8.16.0",
-    "zod": "^3.22.0"
+    "zod": "^4.4.3"
   }
 }
