@@ -1,16 +1,50 @@
-# Forever AI
+# Forever
 
-> TypeScript-native AI Agent Framework
+> TypeScript-native AI agent framework, built for the awkward corner of
+> "I want to keep talking to this person who's gone" and the more useful
+> corner of "I want a long-running agent that actually gets better at my
+> job over weeks, not turns".
 
-[![GitHub stars](https://img.shields.io/github/stars/badhope/forever?style=for-the-badge&color=6A5ACD)](https://github.com/badhope/forever/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/badhope/forever?style=for-the-badge&color=6A5ACD)](https://github.com/badhope/forever/network)
-[![License](https://img.shields.io/github/license/badhope/forever?style=for-the-badge&color=6A5ACD)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?style=for-the-badge)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-20+-green?style=for-the-badge)](https://nodejs.org/)
+The name is half joke, half ambition. Don't read too much into it.
 
 ---
 
-## 🌟 Overview
+## What's here
+
+- A multi-agent runtime (coordinator / delegator / swarm patterns) you can
+  embed in a Node service or a CLI.
+- 16+ LLM adapters behind one interface — switch providers without
+  rewriting prompts.
+- RAG pipeline with a real vector store, not "we shove embeddings in
+  Postgres and call it done".
+- MCP support and a graph-based workflow engine when the linear plan
+  gets long.
+- Safety guardrails (rate limits, content filters, escalation hooks)
+  because the worst thing an agent can do is to act too fast.
+
+## What's not here (yet)
+
+- Production-grade memory that survives container restarts. The current
+  Prisma-backed memory works but is not what I'd ship to a customer
+  billing for the agent.
+- A hosted version. This is a framework; you bring the box.
+- A public roadmap. I work on it when I work on it.
+
+## Quick start
+
+```bash
+git clone https://github.com/badhope/forever.git
+cd forever
+pnpm install
+pnpm dev
+```
+
+That's it. The first run walks you through provider config and drops you
+into the TUI.
+
+---
+
+
 
 Forever AI is a TypeScript-native AI Agent framework featuring multi-agent orchestration, unified LLM adapter, RAG pipeline, and comprehensive safety guardrails.
 
