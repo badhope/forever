@@ -6,7 +6,7 @@ from app.plugins.manager import PluginManager
 from app.plugins.hookspecs import hookimpl
 
 
-class TestPlugin:
+class MockPlugin:
     """测试插件"""
     
     def __init__(self):
@@ -38,7 +38,7 @@ def test_plugin_manager_init(temp_plugins_dir):
 def test_register_plugin(temp_plugins_dir):
     """测试注册插件"""
     manager = PluginManager(temp_plugins_dir)
-    plugin = TestPlugin()
+    plugin = MockPlugin()
     
     manager.load_plugin("test_plugin", plugin)
     
@@ -48,7 +48,7 @@ def test_register_plugin(temp_plugins_dir):
 def test_unregister_plugin(temp_plugins_dir):
     """测试卸载插件"""
     manager = PluginManager(temp_plugins_dir)
-    plugin = TestPlugin()
+    plugin = MockPlugin()
     
     manager.load_plugin("test_plugin", plugin)
     manager.unload_plugin("test_plugin")
@@ -59,7 +59,7 @@ def test_unregister_plugin(temp_plugins_dir):
 def test_call_hook(temp_plugins_dir):
     """测试调用钩子"""
     manager = PluginManager(temp_plugins_dir)
-    plugin = TestPlugin()
+    plugin = MockPlugin()
     
     manager.load_plugin("test_plugin", plugin)
     
@@ -73,7 +73,7 @@ def test_call_hook(temp_plugins_dir):
 def test_call_multiple_hooks(temp_plugins_dir):
     """测试调用多个钩子"""
     manager = PluginManager(temp_plugins_dir)
-    plugin = TestPlugin()
+    plugin = MockPlugin()
     
     manager.load_plugin("test_plugin", plugin)
     
@@ -125,8 +125,8 @@ def test_call_hook_no_plugins(temp_plugins_dir):
 def test_multiple_plugins(temp_plugins_dir):
     """测试多个插件"""
     manager = PluginManager(temp_plugins_dir)
-    plugin1 = TestPlugin()
-    plugin2 = TestPlugin()
+    plugin1 = MockPlugin()
+    plugin2 = MockPlugin()
     
     manager.load_plugin("plugin1", plugin1)
     manager.load_plugin("plugin2", plugin2)
