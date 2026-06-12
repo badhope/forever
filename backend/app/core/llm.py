@@ -90,7 +90,7 @@ class LLMManager:
         return converted
     
     async def chat(self, messages: List[Dict[str, str]], **kwargs) -> str:
-        """同步对话"""
+        """异步对话"""
         llm = self.get_llm()
         converted_messages = self._convert_messages(messages)
         
